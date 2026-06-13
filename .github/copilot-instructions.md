@@ -49,6 +49,14 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 
 ## Common Patterns
 
+### Translate endpoint
+```python
+@router.post("/translate", response_model=TranslateResponse)
+async def translate_text(body: TranslateRequest, db: Session = Depends(get_db)):
+    ...
+```
+The request body uses `TranslateRequest` (fields: `text`, `source_lang`, `target_lang`).
+
 ### Dependency injection
 ```python
 @router.get("/languages")
@@ -69,3 +77,6 @@ lang = resolve_language(db, code)
 ## Keeping Docs in Sync
 When changing architecture, conventions, endpoints, or test patterns, update both this file
 and CLAUDE.md — they serve different AI assistants but must stay consistent.
+
+When adding, removing, or modifying any API endpoint or its request/response schema, also update
+ai-docs/api-reference.md — it is the shareable API reference used for planning with AI assistants.

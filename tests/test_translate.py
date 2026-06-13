@@ -17,9 +17,9 @@ MOCK_TRANSLATE_RESULT = {
 def test_translate_valid_request(mock_translate, client):
     mock_translate.return_value = MOCK_TRANSLATE_RESULT
 
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"text": "várakozás", "source_lang": "hu", "target_lang": "en"},
+        json={"text": "várakozás", "source_lang": "hu", "target_lang": "en"},
     )
 
     assert response.status_code == 200
@@ -35,18 +35,18 @@ def test_translate_valid_request(mock_translate, client):
 
 
 def test_translate_invalid_source_lang(client):
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"text": "hello", "source_lang": "xx", "target_lang": "en"},
+        json={"text": "hello", "source_lang": "xx", "target_lang": "en"},
     )
     assert response.status_code == 400
     assert "source language" in response.json()["detail"].lower()
 
 
 def test_translate_invalid_target_lang(client):
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"text": "hello", "source_lang": "en", "target_lang": "xx"},
+        json={"text": "hello", "source_lang": "en", "target_lang": "xx"},
     )
     assert response.status_code == 400
     assert "target language" in response.json()["detail"].lower()
@@ -58,9 +58,9 @@ def test_translate_ollama_failure(mock_translate, client):
         status_code=502, detail="Ollama service unavailable"
     )
 
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"text": "hello", "source_lang": "hu", "target_lang": "en"},
+        json={"text": "hello", "source_lang": "hu", "target_lang": "en"},
     )
     assert response.status_code == 502
 
@@ -71,9 +71,9 @@ def test_translate_unknown_pos_normalized_to_other(mock_translate, client):
     result["part_of_speech"] = "pronoun"
     mock_translate.return_value = result
 
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"text": "ő", "source_lang": "hu", "target_lang": "en"},
+        json={"text": "ő", "source_lang": "hu", "target_lang": "en"},
     )
 
     assert response.status_code == 200
@@ -86,13 +86,9 @@ def test_translate_null_pos_stays_null(mock_translate, client):
     result["part_of_speech"] = None
     mock_translate.return_value = result
 
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={
-            "text": "Jó reggelt kívánok",
-            "source_lang": "hu",
-            "target_lang": "en",
-        },
+        json={"text": "Jó reggelt kívánok", "source_lang": "hu", "target_lang": "en"},
     )
 
     assert response.status_code == 200
@@ -101,8 +97,8 @@ def test_translate_null_pos_stays_null(mock_translate, client):
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
 def test_translate_missing_text_returns_422(mock_translate, client):
-    response = client.get(
+    response = client.post(
         "/translate",
-        params={"source_lang": "hu", "target_lang": "en"},
+        json={"source_lang": "hu", "target_lang": "en"},
     )
     assert response.status_code == 422

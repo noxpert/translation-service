@@ -14,7 +14,7 @@ My primary use case is for English <-> Hungarian translations, but it need not b
 ```bash
 make build
 make up
-curl http://localhost:8001/
+curl http://localhost:8081/
 ```
 
 ## Configuration
@@ -22,10 +22,14 @@ curl http://localhost:8001/
 Copy `.env.example` to `.env` and adjust as needed:
 
 ```
+PORT=8081
 DATABASE_URL=sqlite:////data/translations.db
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=translategemma:12b
 ```
+
+`PORT` controls both the host binding and the uvicorn listener inside the container. Default is `8081`.
+The `EXPOSE` line in the Dockerfile is documentation only and does not need to match, but should be kept in sync.
 
 Note the four slashes in the SQLite URL — three is relative, four is the absolute
 path `/data/translations.db` inside the container.
@@ -35,7 +39,7 @@ path `/data/translations.db` inside the container.
 | Command | Description |
 |---------|-------------|
 | `make build` | Build the Docker image |
-| `make up` | Start the service (port 8001) |
+| `make up` | Start the service (default port 8081) |
 | `make down` | Stop the service |
 | `make restart` | Restart the service |
 | `make logs` | Tail service logs |
@@ -52,7 +56,7 @@ path `/data/translations.db` inside the container.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Health check |
-| GET | `/translate` | Translate text via Ollama |
+| POST | `/translate` | Translate text via Ollama |
 | GET | `/languages` | List all languages |
 | GET | `/parts-of-speech` | List all parts of speech |
 | POST | `/words` | Save a word and its translations |
