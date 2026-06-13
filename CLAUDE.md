@@ -1,4 +1,4 @@
-# Hungarian Language Service
+# Language Translation Service
 
 ## Project Purpose
 A local-first REST API built with FastAPI and SQLite. It provides Hungarian-English

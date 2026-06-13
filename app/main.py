@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting Hungarian Language Service...")
+    logger.info("Starting Language Translation Service...")
     init_db()
     yield
-    logger.info("Shutting down Hungarian Language Service.")
+    logger.info("Shutting down Language Translation Service.")
 
 
 app = FastAPI(
-    title="Hungarian Language Service",
+    title="Language Translation Service",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -32,4 +32,4 @@ app.include_router(phrases.router)
 
 @app.get("/")
 def health_check():
-    return {"status": "ok", "service": "hungarian-language-service"}
+    return {"status": "ok", "service": "language-translation-service"}

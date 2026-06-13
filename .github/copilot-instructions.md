@@ -1,4 +1,4 @@
-# Hungarian Language Service — Copilot Instructions
+# Language Translation Service — Copilot Instructions
 
 ## What This Project Is
 A FastAPI REST API that translates Hungarian/English text using a local Ollama LLM
