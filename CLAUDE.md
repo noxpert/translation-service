@@ -28,7 +28,7 @@ Intended to serve multiple small language-learning apps.
 - POST to {OLLAMA_BASE_URL}/api/generate with stream: false
 - The model returns a 'response' field containing the JSON string
 - Always strip markdown code fences before JSON parsing
-- Default model: translategemma:12b
+- Default model: translategemma:27b
 - Timeout: 60 seconds
 
 ## Database

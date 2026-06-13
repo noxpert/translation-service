@@ -9,7 +9,7 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "translategemma:12b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "translategemma:27b")
 
 PROMPT_TEMPLATE = """You are a multilingual linguistics assistant.
 

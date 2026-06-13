@@ -224,3 +224,21 @@ def test_update_word_no_op_returns_200(client):
 
     response = client.patch(f"/words/{word_id}", json={})
     assert response.status_code == 200
+
+
+def test_create_word_without_part_of_speech_notes_context(client):
+    response = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "igen"}],
+        "part_of_speech": "other",
+    })
+    assert response.status_code == 201
+    data = response.json()
+    assert data["notes"] is None
+    assert data["context"] is None
+
+
+def test_create_word_with_none_part_of_speech_uses_service_default(client, db_session):
+    # Exercises resolve_part_of_speech(db, None) → returns None → part_of_speech_id is None
+    from app.services.word_service import resolve_part_of_speech
+    result = resolve_part_of_speech(db_session, None)
+    assert result is None

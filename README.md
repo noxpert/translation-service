@@ -7,7 +7,7 @@ My primary use case is for English <-> Hungarian translations, but it need not b
 ## Prerequisites
 
 - Docker Desktop (or Docker + Docker Compose)
-- Ollama running locally with `translategemma:12b` (or another translation model)
+- Ollama running locally with `translategemma:27b` (or another translation model)
 
 For local linting and type checking (optional):
 
@@ -31,7 +31,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 PORT=8081
 DATABASE_URL=sqlite:////data/translations.db
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=translategemma:12b
+OLLAMA_MODEL=translategemma:27b
 ```
 
 `PORT` controls both the host binding and the uvicorn listener inside the container. Default is `8081`.
@@ -86,10 +86,10 @@ To back up: copy `./data/translations.db` to your preferred cloud sync folder.
 
 ## Ollama Model Note
 
-The default model is `translategemma:12b`. This model requires a single user message
+The default model is `translategemma:27b`. This model requires a single user message
 with no system role in the prompt. Do not add a system prompt to the Ollama request.
 
-Swap to `translategemma:27b` in your `.env` for better quality at the cost of more memory.
+Override via `OLLAMA_MODEL` in your `.env` to use a different model.
 
 ## Adding a New Source App
 
