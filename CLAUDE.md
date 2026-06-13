@@ -20,7 +20,7 @@ Intended to serve multiple small language-learning apps.
 - Part of speech codes: noun, verb, adj, adv, other
 - Unknown POS values are silently normalized to 'other' on write
 - Cascade deletes are used; no soft deletes
-- No unique constraint on word_translations (multiple translations per language allowed)
+- No unique constraint on word_translations or phrase_translations (multiple translations per language allowed)
 - SQLite foreign key enforcement enabled via PRAGMA foreign_keys=ON on every connection
 
 ## Ollama Integration (Critical)
@@ -37,6 +37,12 @@ Intended to serve multiple small language-learning apps.
 - init_db() runs on startup and is idempotent (checks for existing seed data)
 - No Alembic yet; schema changes require manual migration
 
+## CI/CD
+- GitHub Actions workflow at .github/workflows/ci.yml
+- Runs on every PR to main and every push to main
+- Builds the Docker image (with layer caching) then runs the full test suite
+- Branch protection on main requires CI to pass before merge
+
 ## Running and Testing
 - Start: make up
 - Run tests: make test
@@ -50,3 +56,7 @@ Intended to serve multiple small language-learning apps.
 - app/services/     — Business logic (word_service.py, ollama.py)
 - app/db/init_db.py — Table creation and seed data
 - tests/            — pytest tests; conftest.py sets up in-memory DB and TestClient
+
+## Keeping Docs in Sync
+When changing architecture, conventions, endpoints, or test patterns, update both this file
+and .github/copilot-instructions.md — they serve different AI assistants but must stay consistent.

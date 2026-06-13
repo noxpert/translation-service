@@ -2,7 +2,7 @@
 
 A local-first REST API for translation and vocabulary management, powered by a local Ollama LLM and backed by SQLite.
 
-My primary use case is for English <-> Hungarian translations, but it need not be limited to that.  "
+My primary use case is for English <-> Hungarian translations, but it need not be limited to that.
 
 ## Prerequisites
 
@@ -40,9 +40,12 @@ path `/data/translations.db` inside the container.
 | `make restart` | Restart the service |
 | `make logs` | Tail service logs |
 | `make test` | Run all tests in the container |
+| `make test-short` | Run all tests with compact output |
 | `make test-file FILE=tests/test_translate.py` | Run a specific test file |
 | `make shell` | Shell into the running container |
+| `make shell-run` | Shell into a fresh container (service need not be running) |
 | `make db-shell` | Open SQLite CLI on the host database |
+| `make clean` | Remove the Docker image and rebuild from scratch |
 
 ## API Endpoints
 

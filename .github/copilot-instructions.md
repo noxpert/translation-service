@@ -6,7 +6,7 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 
 ## Language and Frameworks
 - Python 3.12
-- FastAPI with async route handlers
+- FastAPI — route handlers are sync by default; only `translate` is `async` (Ollama uses AsyncClient)
 - SQLAlchemy ORM (not Core); models in app/models/
 - Pydantic v2 schemas in app/schemas/ with ConfigDict(from_attributes=True)
 - pytest for tests
@@ -21,7 +21,7 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 ## Database Conventions
 - SQLite file at /data/translations.db (container) or ./data/translations.db (host)
 - Four-slash SQLite URL for absolute path: sqlite:////data/translations.db
-- All models have: id (PK autoincrement), created_at (DateTime, default utcnow)
+- All models have: id (PK autoincrement), created_at (DateTime, default `datetime.now(timezone.utc)`)
 - Cascade deletes on word_translations and phrase_translations
 - No soft deletes; no unique constraint on translation rows
 
@@ -36,6 +36,11 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 - Parse the 'response' field from the result; strip any ```json fences
 - Raise HTTPException(502) on any failure
 
+## CI/CD
+- GitHub Actions at .github/workflows/ci.yml — triggers on PRs to main and pushes to main
+- Builds the Docker image with GHA layer caching, then runs `pytest tests/ -v` inside the container
+- Branch protection on main requires CI to pass before merge
+
 ## Testing
 - Tests always run inside Docker: make test
 - conftest.py provides an in-memory SQLite DB and overrides get_db
@@ -46,8 +51,8 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 
 ### Dependency injection
 ```python
-@router.get("/words")
-async def list_words(db: Session = Depends(get_db)):
+@router.get("/languages")
+def get_languages(db: Session = Depends(get_db)):
     ...
 ```
 
@@ -60,3 +65,7 @@ pos = resolve_part_of_speech(db, code)  # returns 'other' row if unknown
 ```python
 lang = resolve_language(db, code)
 ```
+
+## Keeping Docs in Sync
+When changing architecture, conventions, endpoints, or test patterns, update both this file
+and CLAUDE.md — they serve different AI assistants but must stay consistent.
