@@ -30,8 +30,8 @@ jobs:
 
       - name: Run tests
         run: |
-          docker compose run --rm --no-build \
+          docker run --rm \
             -e DATABASE_URL=sqlite:// \
             -e PYTHONPATH=/app \
-            translation-service \
+            translation-service-translation-service:latest \
             pytest tests/ -v
