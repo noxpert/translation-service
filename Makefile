@@ -50,6 +50,7 @@ coverage:
 	docker compose run --rm \
 		-e DATABASE_URL=sqlite:// \
 		-e PYTHONPATH=/app \
+		-e COVERAGE_FILE=/tmp/.coverage \
 		translation-service \
 		pytest tests/ -v --cov=app --cov-report=term-missing
 
