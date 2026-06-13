@@ -68,6 +68,71 @@ def test_delete_phrase_not_found(client):
     assert response.status_code == 404
 
 
+def test_create_phrase_response_shape(client):
+    response = client.post("/phrases", json={
+        "translations": [{"language_code": "hu", "text": "Szép napot"}],
+        "notes": "polite farewell",
+        "context": "daytime only",
+    })
+    assert response.status_code == 201
+    body = response.json()
+    assert "id" in body
+    assert "source_id" in body
+    assert "notes" in body
+    assert "context" in body
+    assert "created_at" in body
+    assert "translations" in body
+    assert body["notes"] == "polite farewell"
+    assert body["context"] == "daytime only"
+
+
+def test_create_phrase_with_source_name(client):
+    response = client.post("/phrases", json={
+        "translations": [{"language_code": "hu", "text": "Jó munkát"}],
+        "source_name": "phrase-app",
+    })
+    assert response.status_code == 201
+    assert response.json()["source_id"] is not None
+
+
+def test_create_phrase_empty_translations_returns_422(client):
+    response = client.post("/phrases", json={"translations": []})
+    assert response.status_code == 422
+
+
+def test_update_phrase_context(client):
+    create = client.post("/phrases", json={
+        "translations": [{"language_code": "hu", "text": "Egészségére"}],
+    })
+    phrase_id = create.json()["id"]
+
+    response = client.patch(f"/phrases/{phrase_id}", json={"context": "said when someone sneezes"})
+    assert response.status_code == 200
+    assert response.json()["context"] == "said when someone sneezes"
+
+
+def test_update_phrase_source_name(client):
+    create = client.post("/phrases", json={
+        "translations": [{"language_code": "hu", "text": "Vigyázz magadra"}],
+    })
+    phrase_id = create.json()["id"]
+    assert create.json()["source_id"] is None
+
+    response = client.patch(f"/phrases/{phrase_id}", json={"source_name": "phrase-app"})
+    assert response.status_code == 200
+    assert response.json()["source_id"] is not None
+
+
+def test_update_phrase_no_op_returns_200(client):
+    create = client.post("/phrases", json={
+        "translations": [{"language_code": "hu", "text": "Minden jót"}],
+    })
+    phrase_id = create.json()["id"]
+
+    response = client.patch(f"/phrases/{phrase_id}", json={})
+    assert response.status_code == 200
+
+
 def test_delete_phrase_cascades_translations(client, db_session):
     create = client.post("/phrases", json={
         "translations": [

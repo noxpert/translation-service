@@ -1,4 +1,4 @@
-from app.models.word import WordTranslation
+from app.models.word import Word, WordTranslation
 
 
 def test_create_word_success(client):
@@ -103,3 +103,125 @@ def test_delete_word_cascades_translations(client, db_session):
         WordTranslation.word_id == word_id
     ).all()
     assert len(remaining) == 0
+
+
+def test_create_word_response_shape(client):
+    response = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "könyv"}],
+        "part_of_speech": "noun",
+        "notes": "common word",
+        "context": "found in a book",
+        "is_verified": True,
+    })
+    assert response.status_code == 201
+    body = response.json()
+    assert "id" in body
+    assert "part_of_speech_id" in body
+    assert "source_id" in body
+    assert "notes" in body
+    assert "context" in body
+    assert "is_verified" in body
+    assert "created_at" in body
+    assert "translations" in body
+    assert body["notes"] == "common word"
+    assert body["context"] == "found in a book"
+    assert body["is_verified"] == 1
+
+
+def test_create_word_with_source_name(client):
+    response = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "szó"}],
+        "part_of_speech": "noun",
+        "source_name": "my-app",
+    })
+    assert response.status_code == 201
+    assert response.json()["source_id"] is not None
+
+
+def test_create_word_source_name_reused_across_words(client):
+    client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "első"}],
+        "part_of_speech": "adj",
+        "source_name": "shared-app",
+    })
+    second = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "második"}],
+        "part_of_speech": "adj",
+        "source_name": "shared-app",
+    })
+    assert second.json()["source_id"] == client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "harmadik"}],
+        "part_of_speech": "adj",
+        "source_name": "shared-app",
+    }).json()["source_id"]
+
+
+def test_create_word_empty_translations_returns_422(client):
+    response = client.post("/words", json={
+        "translations": [],
+        "part_of_speech": "noun",
+    })
+    assert response.status_code == 422
+
+
+def test_update_word_part_of_speech(client):
+    create = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "fut"}],
+        "part_of_speech": "noun",
+    })
+    word_id = create.json()["id"]
+    original_pos_id = create.json()["part_of_speech_id"]
+
+    response = client.patch(f"/words/{word_id}", json={"part_of_speech": "verb"})
+    assert response.status_code == 200
+    assert response.json()["part_of_speech_id"] != original_pos_id
+
+
+def test_update_word_source_name(client):
+    create = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "hold"}],
+        "part_of_speech": "noun",
+    })
+    word_id = create.json()["id"]
+    assert create.json()["source_id"] is None
+
+    response = client.patch(f"/words/{word_id}", json={"source_name": "new-app"})
+    assert response.status_code == 200
+    assert response.json()["source_id"] is not None
+
+
+def test_update_word_context(client):
+    create = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "nap"}],
+        "part_of_speech": "noun",
+    })
+    word_id = create.json()["id"]
+
+    response = client.patch(f"/words/{word_id}", json={"context": "astronomy context"})
+    assert response.status_code == 200
+    assert response.json()["context"] == "astronomy context"
+
+
+def test_update_word_is_verified(client):
+    create = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "csillag"}],
+        "part_of_speech": "noun",
+        "is_verified": False,
+    })
+    word_id = create.json()["id"]
+    assert create.json()["is_verified"] == 0
+
+    response = client.patch(f"/words/{word_id}", json={"is_verified": True})
+    assert response.status_code == 200
+    assert response.json()["is_verified"] == 1
+
+
+def test_update_word_no_op_returns_200(client):
+    create = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "tenger"}],
+        "part_of_speech": "noun",
+    })
+    word_id = create.json()["id"]
+
+    response = client.patch(f"/words/{word_id}", json={})
+    assert response.status_code == 200
