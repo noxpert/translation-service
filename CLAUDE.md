@@ -60,3 +60,6 @@ Intended to serve multiple small language-learning apps.
 ## Keeping Docs in Sync
 When changing architecture, conventions, endpoints, or test patterns, update both this file
 and .github/copilot-instructions.md — they serve different AI assistants but must stay consistent.
+
+When adding, removing, or modifying any API endpoint or its request/response schema, also update
+ai-docs/api-reference.md — it is the shareable API reference used for planning with AI assistants.
