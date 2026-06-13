@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs test test-short test-file shell shell-run db-shell clean help
+.PHONY: build up down restart logs test test-short test-file coverage lint typecheck shell shell-run db-shell clean help
 
 ## Build the Docker image
 build:
@@ -44,6 +44,23 @@ test-file:
 		-e PYTHONPATH=/app \
 		translation-service \
 		pytest $(FILE) -v
+
+## Run tests with coverage report (requires make build first if code changed)
+coverage:
+	docker compose run --rm \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
+		-e COVERAGE_FILE=/tmp/.coverage \
+		translation-service \
+		pytest tests/ -v --cov=app --cov-report=term-missing
+
+## Check code style and imports (requires: pip install -r requirements-dev.txt)
+lint:
+	ruff check app/ tests/
+
+## Run static type checking (requires: pip install -r requirements-dev.txt)
+typecheck:
+	mypy app/
 
 ## Open a shell inside the running container
 shell:

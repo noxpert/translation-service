@@ -26,7 +26,7 @@ async def translate_text(
         raise HTTPException(status_code=400, detail=f"Unknown target language: {target_lang}")
 
     # Call Ollama
-    result = await ollama.translate(text, source.name, target.name)
+    result = await ollama.translate(text, source.name, target.name)  # type: ignore[arg-type]
 
     # Normalize part_of_speech against the lookup table
     pos_value = result.get("part_of_speech")
@@ -43,7 +43,7 @@ async def translate_text(
         target_text=result.get("target_text", ""),
         source_lang=source_lang,
         target_lang=target_lang,
-        part_of_speech=pos_value,
+        part_of_speech=pos_value,  # type: ignore[arg-type]
         root_source=result.get("root_source"),
         root_target=result.get("root_target"),
         notes=result.get("notes"),

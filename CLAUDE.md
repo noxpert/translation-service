@@ -28,7 +28,7 @@ Intended to serve multiple small language-learning apps.
 - POST to {OLLAMA_BASE_URL}/api/generate with stream: false
 - The model returns a 'response' field containing the JSON string
 - Always strip markdown code fences before JSON parsing
-- Default model: translategemma:12b
+- Default model: translategemma:27b
 - Timeout: 60 seconds
 
 ## Database
@@ -46,8 +46,12 @@ Intended to serve multiple small language-learning apps.
 ## Running and Testing
 - Start: make up
 - Run tests: make test
+- Run tests with coverage: make coverage
 - View logs: make logs
 - Never run pytest directly on the host; always use make test or docker compose run
+- Lint (host): make lint — uses ruff (config in pyproject.toml)
+- Type check (host): make typecheck — uses mypy (config in pyproject.toml)
+- Install dev tools: pip install -r requirements-dev.txt
 
 ## File Layout
 - app/models/       — SQLAlchemy ORM models

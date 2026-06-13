@@ -7,7 +7,13 @@ My primary use case is for English <-> Hungarian translations, but it need not b
 ## Prerequisites
 
 - Docker Desktop (or Docker + Docker Compose)
-- Ollama running locally with `translategemma:12b` (or another translation model)
+- Ollama running locally with `translategemma:27b` (or another translation model)
+
+For local linting and type checking (optional):
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ## Quick Start
 
@@ -25,7 +31,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 PORT=8081
 DATABASE_URL=sqlite:////data/translations.db
 OLLAMA_BASE_URL=http://host.docker.internal:11434
-OLLAMA_MODEL=translategemma:12b
+OLLAMA_MODEL=translategemma:27b
 ```
 
 `PORT` controls both the host binding and the uvicorn listener inside the container. Default is `8081`.
@@ -46,6 +52,9 @@ path `/data/translations.db` inside the container.
 | `make test` | Run all tests in the container |
 | `make test-short` | Run all tests with compact output |
 | `make test-file FILE=tests/test_translate.py` | Run a specific test file |
+| `make coverage` | Run tests with coverage report |
+| `make lint` | Check code style with ruff (host) |
+| `make typecheck` | Run mypy type checking (host) |
 | `make shell` | Shell into the running container |
 | `make shell-run` | Shell into a fresh container (service need not be running) |
 | `make db-shell` | Open SQLite CLI on the host database |
@@ -77,10 +86,10 @@ To back up: copy `./data/translations.db` to your preferred cloud sync folder.
 
 ## Ollama Model Note
 
-The default model is `translategemma:12b`. This model requires a single user message
+The default model is `translategemma:27b`. This model requires a single user message
 with no system role in the prompt. Do not add a system prompt to the Ollama request.
 
-Swap to `translategemma:27b` in your `.env` for better quality at the cost of more memory.
+Override via `OLLAMA_MODEL` in your `.env` to use a different model.
 
 ## Adding a New Source App
 

@@ -38,11 +38,19 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 
 ## CI/CD
 - GitHub Actions at .github/workflows/ci.yml — triggers on PRs to main and pushes to main
-- Builds the Docker image with GHA layer caching, then runs `pytest tests/ -v` inside the container
+- `lint` job: runs ruff and mypy directly on the runner (no Docker)
+- `test` job: builds the Docker image with GHA layer caching, then runs `pytest tests/ -v` inside the container
 - Branch protection on main requires CI to pass before merge
+
+## Linting and Type Checking
+- ruff: style + import sorting (`make lint`); config in pyproject.toml
+- mypy: static type checking (`make typecheck`); config in pyproject.toml
+- Router functions are excluded from `disallow_untyped_defs` — FastAPI types via `response_model`
+- Dev tools: `pip install -r requirements-dev.txt`
 
 ## Testing
 - Tests always run inside Docker: make test
+- Coverage report: make coverage (uses pytest-cov)
 - conftest.py provides an in-memory SQLite DB and overrides get_db
 - Seed languages and parts_of_speech in conftest fixtures
 - Mock app.services.ollama.translate in translate tests

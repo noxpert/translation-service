@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 
-
 MOCK_TRANSLATE_RESULT = {
     "source_text": "várakozás",
     "target_text": "waiting",

@@ -1,6 +1,5 @@
 import pytest
 
-
 WORD_ALMA = {
     "translations": [
         {"language_code": "hu", "text": "alma"},

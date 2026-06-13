@@ -22,7 +22,6 @@ def test_create_word_unknown_pos_falls_back_to_other(client, db_session):
     })
     assert response.status_code == 201
     word_id = response.json()["id"]
-    from app.models.word import Word
     from app.models.part_of_speech import PartOfSpeech
     word = db_session.query(Word).filter(Word.id == word_id).first()
     pos = db_session.query(PartOfSpeech).filter(PartOfSpeech.id == word.part_of_speech_id).first()
@@ -225,3 +224,21 @@ def test_update_word_no_op_returns_200(client):
 
     response = client.patch(f"/words/{word_id}", json={})
     assert response.status_code == 200
+
+
+def test_create_word_without_part_of_speech_notes_context(client):
+    response = client.post("/words", json={
+        "translations": [{"language_code": "hu", "text": "igen"}],
+        "part_of_speech": "other",
+    })
+    assert response.status_code == 201
+    data = response.json()
+    assert data["notes"] is None
+    assert data["context"] is None
+
+
+def test_create_word_with_none_part_of_speech_uses_service_default(client, db_session):
+    # Exercises resolve_part_of_speech(db, None) → returns None → part_of_speech_id is None
+    from app.services.word_service import resolve_part_of_speech
+    result = resolve_part_of_speech(db_session, None)
+    assert result is None

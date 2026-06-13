@@ -7,6 +7,25 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check app/ tests/
+
+      - name: Type check (mypy)
+        run: mypy app/
+
   test:
     runs-on: ubuntu-latest
 
@@ -18,7 +37,7 @@ jobs:
 
       # Builds the image and caches layers in GitHub Actions cache.
       # The tag matches what docker compose derives from the project + service name
-      # so the subsequent `docker compose run --no-build` reuses this image directly.
+      # so the subsequent docker run reuses this image directly.
       - name: Build image
         uses: docker/build-push-action@v6
         with:
