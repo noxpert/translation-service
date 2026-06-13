@@ -1,7 +1,7 @@
 # Language Translation Service — Copilot Instructions
 
 ## What This Project Is
-A FastAPI REST API that translates Hungarian/English text using a local Ollama LLM
+A FastAPI REST API that translates text between languages using a local Ollama LLM
 and stores words and phrases in SQLite for language study. Containerized with Docker.
 
 ## Language and Frameworks
@@ -19,8 +19,8 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 - SQLite foreign key enforcement is enabled via PRAGMA foreign_keys=ON
 
 ## Database Conventions
-- SQLite file at /data/hungarian.db (container) or ./data/hungarian.db (host)
-- Four-slash SQLite URL for absolute path: sqlite:////data/hungarian.db
+- SQLite file at /data/translations.db (container) or ./data/translations.db (host)
+- Four-slash SQLite URL for absolute path: sqlite:////data/translations.db
 - All models have: id (PK autoincrement), created_at (DateTime, default utcnow)
 - Cascade deletes on word_translations and phrase_translations
 - No soft deletes; no unique constraint on translation rows

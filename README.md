@@ -22,13 +22,13 @@ curl http://localhost:8001/
 Copy `.env.example` to `.env` and adjust as needed:
 
 ```
-DATABASE_URL=sqlite:////data/hungarian.db
+DATABASE_URL=sqlite:////data/translations.db
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=translategemma:12b
 ```
 
 Note the four slashes in the SQLite URL — three is relative, four is the absolute
-path `/data/hungarian.db` inside the container.
+path `/data/translations.db` inside the container.
 
 ## Running
 
@@ -61,11 +61,11 @@ path `/data/hungarian.db` inside the container.
 
 ## Database
 
-The SQLite database lives at `./data/hungarian.db` on your host machine, mounted
-into the container at `/data/hungarian.db`. Tables and seed data are created
+The SQLite database lives at `./data/translations.db` on your host machine, mounted
+into the container at `/data/translations.db`. Tables and seed data are created
 automatically on first startup.
 
-To back up: copy `./data/hungarian.db` to your preferred cloud sync folder.
+To back up: copy `./data/translations.db` to your preferred cloud sync folder.
 
 ## Ollama Model Note
 

@@ -3,7 +3,7 @@ import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./hungarian.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./translations.db")
 
 engine = create_engine(
     DATABASE_URL,

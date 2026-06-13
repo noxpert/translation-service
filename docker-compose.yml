@@ -1,13 +1,13 @@
 services:
-  hungarian-service:
+  translation-service:
     build: .
-    container_name: hungarian-service
+    container_name: translation-service
     ports:
       - "8001:8001"
     volumes:
       - ./data:/data
     environment:
-      - DATABASE_URL=sqlite:////data/hungarian.db
+      - DATABASE_URL=sqlite:////data/translations.db
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=translategemma:12b
     extra_hosts:
