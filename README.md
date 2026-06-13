@@ -2,7 +2,7 @@
 
 A local-first REST API for translation and vocabulary management, powered by a local Ollama LLM and backed by SQLite.
 
-My primary use case is for English <-> Hungarian translations, but it need not be limited to that."
+My primary use case is for English <-> Hungarian translations, but it need not be limited to that.  "
 
 ## Prerequisites
 
@@ -52,12 +52,12 @@ path `/data/hungarian.db` inside the container.
 | GET | `/translate` | Translate text via Ollama |
 | GET | `/languages` | List all languages |
 | GET | `/parts-of-speech` | List all parts of speech |
-| POST | `/words` | Save a word *(coming soon)* |
-| PATCH | `/words/{id}` | Update a word *(coming soon)* |
-| DELETE | `/words/{id}` | Delete a word *(coming soon)* |
-| POST | `/phrases` | Save a phrase *(coming soon)* |
-| PATCH | `/phrases/{id}` | Update a phrase *(coming soon)* |
-| DELETE | `/phrases/{id}` | Delete a phrase *(coming soon)* |
+| POST | `/words` | Save a word and its translations |
+| PATCH | `/words/{id}` | Update a word and/or its translations |
+| DELETE | `/words/{id}` | Delete a word and cascade its translations |
+| POST | `/phrases` | Save a phrase and its translations |
+| PATCH | `/phrases/{id}` | Update a phrase and/or its translations |
+| DELETE | `/phrases/{id}` | Delete a phrase and cascade its translations |
 
 ## Database
 
@@ -73,3 +73,10 @@ The default model is `translategemma:12b`. This model requires a single user mes
 with no system role in the prompt. Do not add a system prompt to the Ollama request.
 
 Swap to `translategemma:27b` in your `.env` for better quality at the cost of more memory.
+
+## Adding a New Source App
+
+Every word and phrase can be tagged with a `source_name` identifying which app
+created it. Sources are created automatically on first use — just include
+`"source_name": "my-app"` in your POST body and the service will create the
+source record if it doesn't already exist. No pre-registration needed.

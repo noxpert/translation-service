@@ -21,24 +21,27 @@ restart:
 logs:
 	docker compose logs -f hungarian-service
 
-## Run all tests inside the container (uses isolated DB)
+## Run all tests inside the container (uses isolated in-memory DB)
 test:
 	docker compose run --rm \
-		-e DATABASE_URL=sqlite:///./test.db \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
 		hungarian-service \
 		pytest tests/ -v
 
 ## Run tests with short output
 test-short:
 	docker compose run --rm \
-		-e DATABASE_URL=sqlite:///./test.db \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
 		hungarian-service \
 		pytest tests/ -q
 
 ## Run a specific test file (usage: make test-file FILE=tests/test_words.py)
 test-file:
 	docker compose run --rm \
-		-e DATABASE_URL=sqlite:///./test.db \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
 		hungarian-service \
 		pytest $(FILE) -v
 

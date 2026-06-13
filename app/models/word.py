@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
@@ -15,7 +15,7 @@ class Word(Base):
     notes = Column(String, nullable=True)
     context = Column(String, nullable=True)
     is_verified = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     translations = relationship(
         "WordTranslation",
@@ -33,7 +33,7 @@ class WordTranslation(Base):
     word_id = Column(Integer, ForeignKey("words.id", ondelete="CASCADE"), nullable=False)
     language_id = Column(Integer, ForeignKey("languages.id"), nullable=False)
     text = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     word = relationship("Word", back_populates="translations")
     language = relationship("Language")
