@@ -55,15 +55,16 @@ path `/data/translations.db` inside the container.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/` | Health check |
-| POST | `/translate` | Translate text via Ollama |
-| GET | `/languages` | List all languages |
-| GET | `/parts-of-speech` | List all parts of speech |
-| POST | `/words` | Save a word and its translations |
-| PATCH | `/words/{id}` | Update a word and/or its translations |
+| GET    | `/` | Health check |
+| POST   | `/translate` | Translate text via Ollama |
+| POST   | `/search` | Search stored words and phrases by text |
+| GET    | `/languages` | List all languages |
+| GET    | `/parts-of-speech` | List all parts of speech |
+| POST   | `/words` | Save a word and its translations |
+| PATCH  | `/words/{id}` | Update a word and/or its translations |
 | DELETE | `/words/{id}` | Delete a word and cascade its translations |
-| POST | `/phrases` | Save a phrase and its translations |
-| PATCH | `/phrases/{id}` | Update a phrase and/or its translations |
+| POST   | `/phrases` | Save a phrase and its translations |
+| PATCH  | `/phrases/{id}` | Update a phrase and/or its translations |
 | DELETE | `/phrases/{id}` | Delete a phrase and cascade its translations |
 
 ## Database
