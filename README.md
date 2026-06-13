@@ -9,6 +9,12 @@ My primary use case is for English <-> Hungarian translations, but it need not b
 - Docker Desktop (or Docker + Docker Compose)
 - Ollama running locally with `translategemma:12b` (or another translation model)
 
+For local linting and type checking (optional):
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 ## Quick Start
 
 ```bash
@@ -46,6 +52,9 @@ path `/data/translations.db` inside the container.
 | `make test` | Run all tests in the container |
 | `make test-short` | Run all tests with compact output |
 | `make test-file FILE=tests/test_translate.py` | Run a specific test file |
+| `make coverage` | Run tests with coverage report |
+| `make lint` | Check code style with ruff (host) |
+| `make typecheck` | Run mypy type checking (host) |
 | `make shell` | Shell into the running container |
 | `make shell-run` | Shell into a fresh container (service need not be running) |
 | `make db-shell` | Open SQLite CLI on the host database |

@@ -6,7 +6,7 @@ from app.models import Language, PartOfSpeech  # noqa: F401 - registers all mode
 logger = logging.getLogger(__name__)
 
 
-def init_db():
+def init_db() -> None:
     """Create all tables and insert seed data if needed. Idempotent."""
     # Import all models so they are registered with Base.metadata
     import app.models  # noqa: F401

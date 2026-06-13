@@ -22,7 +22,6 @@ def test_create_word_unknown_pos_falls_back_to_other(client, db_session):
     })
     assert response.status_code == 201
     word_id = response.json()["id"]
-    from app.models.word import Word
     from app.models.part_of_speech import PartOfSpeech
     word = db_session.query(Word).filter(Word.id == word_id).first()
     pos = db_session.query(PartOfSpeech).filter(PartOfSpeech.id == word.part_of_speech_id).first()

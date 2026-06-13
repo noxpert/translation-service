@@ -37,7 +37,9 @@ class PhraseCreate(BaseModel):
 
     @field_validator("translations")
     @classmethod
-    def at_least_one_translation(cls, v):
+    def at_least_one_translation(
+        cls, v: list[PhraseTranslationInput]
+    ) -> list[PhraseTranslationInput]:
         if len(v) < 1:
             raise ValueError("At least one translation is required")
         return v

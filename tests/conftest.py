@@ -1,17 +1,15 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
 
+# Import all models to register them with Base.metadata
+import app.models  # noqa: F401
 from app.database import Base, get_db
 from app.main import app as fastapi_app
 from app.models.language import Language
 from app.models.part_of_speech import PartOfSpeech
-
-# Import all models to register them with Base.metadata
-import app.models  # noqa: F401
-
 
 # In-memory SQLite with StaticPool so all connections share the same DB
 TEST_ENGINE = create_engine(

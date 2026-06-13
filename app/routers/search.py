@@ -14,4 +14,4 @@ def search(data: SearchRequest, db: Session = Depends(get_db)):
     source = resolve_language(db, data.source_lang)
     target = resolve_language(db, data.target_lang)
     words, phrases = word_service.search(db, data.text, source.id, target.id)
-    return SearchResponse(words=words, phrases=phrases)
+    return SearchResponse(words=words, phrases=phrases)  # type: ignore[arg-type]
