@@ -52,7 +52,7 @@ path `/data/translations.db` inside the container.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Health check |
-| GET | `/translate` | Translate text via Ollama |
+| POST | `/translate` | Translate text via Ollama |
 | GET | `/languages` | List all languages |
 | GET | `/parts-of-speech` | List all parts of speech |
 | POST | `/words` | Save a word and its translations |

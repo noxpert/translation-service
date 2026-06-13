@@ -1,22 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.language import Language
 from app.models.part_of_speech import PartOfSpeech
-from app.schemas.translate import TranslateResponse
+from app.schemas.translate import TranslateRequest, TranslateResponse
 from app.services import ollama
 
 router = APIRouter(tags=["Translation"])
 
 
-@router.get("/translate", response_model=TranslateResponse)
+@router.post("/translate", response_model=TranslateResponse)
 async def translate_text(
-    text: str = Query(..., description="The word or phrase to translate"),
-    source_lang: str = Query(..., description="ISO 639-1 code, e.g. 'hu'"),
-    target_lang: str = Query(..., description="ISO 639-1 code, e.g. 'en'"),
+    body: TranslateRequest,
     db: Session = Depends(get_db),
 ):
+    text, source_lang, target_lang = body.text, body.source_lang, body.target_lang
     # Validate language codes
     source = db.query(Language).filter(Language.code == source_lang).first()
     if source is None:

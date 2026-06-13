@@ -49,6 +49,14 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 
 ## Common Patterns
 
+### Translate endpoint
+```python
+@router.post("/translate", response_model=TranslateResponse)
+async def translate_text(body: TranslateRequest, db: Session = Depends(get_db)):
+    ...
+```
+The request body uses `TranslateRequest` (fields: `text`, `source_lang`, `target_lang`).
+
 ### Dependency injection
 ```python
 @router.get("/languages")
