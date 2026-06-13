@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.language import Language
@@ -152,3 +153,43 @@ def delete_phrase(db: Session, phrase_id: int) -> None:
         raise HTTPException(status_code=404, detail="Phrase not found")
     db.delete(phrase)
     db.commit()
+
+
+def search(
+    db: Session, text: str, source_language_id: int, target_language_id: int
+) -> tuple[list[Word], list[Phrase]]:
+    pattern = f"%{text.lower()}%"
+
+    word_ids_in_source = (
+        db.query(WordTranslation.word_id)
+        .filter(WordTranslation.language_id == source_language_id)
+        .filter(func.lower(WordTranslation.text).like(pattern))
+    )
+    word_ids_in_target = (
+        db.query(WordTranslation.word_id)
+        .filter(WordTranslation.language_id == target_language_id)
+    )
+    words = (
+        db.query(Word)
+        .filter(Word.id.in_(word_ids_in_source))
+        .filter(Word.id.in_(word_ids_in_target))
+        .all()
+    )
+
+    phrase_ids_in_source = (
+        db.query(PhraseTranslation.phrase_id)
+        .filter(PhraseTranslation.language_id == source_language_id)
+        .filter(func.lower(PhraseTranslation.text).like(pattern))
+    )
+    phrase_ids_in_target = (
+        db.query(PhraseTranslation.phrase_id)
+        .filter(PhraseTranslation.language_id == target_language_id)
+    )
+    phrases = (
+        db.query(Phrase)
+        .filter(Phrase.id.in_(phrase_ids_in_source))
+        .filter(Phrase.id.in_(phrase_ids_in_target))
+        .all()
+    )
+
+    return words, phrases
