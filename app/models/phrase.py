@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
@@ -13,7 +13,7 @@ class Phrase(Base):
     source_id = Column(Integer, ForeignKey("sources.id"), nullable=True)
     notes = Column(String, nullable=True)
     context = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     translations = relationship(
         "PhraseTranslation",
@@ -30,7 +30,7 @@ class PhraseTranslation(Base):
     phrase_id = Column(Integer, ForeignKey("phrases.id", ondelete="CASCADE"), nullable=False)
     language_id = Column(Integer, ForeignKey("languages.id"), nullable=False)
     text = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     phrase = relationship("Phrase", back_populates="translations")
     language = relationship("Language")

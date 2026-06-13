@@ -1,13 +1,13 @@
 # Language Translation Service
 
 ## Project Purpose
-A local-first REST API built with FastAPI and SQLite. It provides Hungarian-English
+A local-first REST API built with FastAPI and SQLite. It provides multilingual
 translation via a local Ollama LLM and stores words and phrases for language study.
 Intended to serve multiple small language-learning apps.
 
 ## Tech Stack
 - Python 3.12, FastAPI, SQLAlchemy (ORM), Pydantic v2
-- SQLite (file at /data/hungarian.db in container, ./data/hungarian.db on host)
+- SQLite (file at /data/translations.db in container, ./data/translations.db on host)
 - Ollama for LLM inference (runs on host, not in container)
 - Docker + docker-compose for containerization
 - pytest for tests (always run inside container via `make test`)

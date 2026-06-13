@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 httpx
+httpx2
 pydantic
 pydantic-settings
 pytest
