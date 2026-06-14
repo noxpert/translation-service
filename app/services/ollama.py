@@ -24,15 +24,18 @@ The JSON must have exactly these fields:
   "source_text": "<the original input text>",
   "target_text": "<the translation>",
   "part_of_speech": "<one of: noun, verb, adj, adv, other, or null if a phrase>",
-  "root_source": "<root/lemma form in source language, or null if already root>",
+  "root_source": "<root/lemma form in source language, or null if input is already the root>",
   "root_target": "<translation of the root form, or null>",
   "notes": "<brief linguistic notes about the translation, or null>"
 }}
 
 Rules:
 - part_of_speech should be null if the input is a phrase or clause
-- root_source: for inflected or conjugated words, give the dictionary/lemma form (e.g. olvassa → olvasni, autóba → autó). For nouns derived from verbs, return the noun form as root, not the underlying verb.
-- root_target: the {target_lang_name} translation of root_source
+- root_source: the dictionary/lemma form of the input word — only set this if the input is inflected or conjugated, otherwise null.
+  For Hungarian verbs the lemma is always the infinitive ending in -ni/-ani/-eni (e.g. sietek → sietni, olvasom → olvasni, futok → futni, ment → menni, van → lenni).
+  For Hungarian nouns/adjectives remove case suffixes to get the base form (e.g. autóba → autó, házban → ház).
+  For nouns derived from verbs, use the noun as the root, not the underlying verb.
+- root_target: the {target_lang_name} translation of root_source, or null if root_source is null
 - notes: mention conjugation pattern, suffix meaning, or alternate meanings if relevant
 - Return null for any field you are not confident about rather than guessing"""
 
@@ -72,6 +75,13 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
         cleaned = re.sub(r"\s*```$", "", cleaned)
 
         result = json.loads(cleaned)
+
+        # If the model returned the input word as its own root, the root adds no information
+        root_source = result.get("root_source") or ""
+        if root_source.strip().lower() == text.strip().lower():
+            result["root_source"] = None
+            result["root_target"] = None
+
         return result
     except (json.JSONDecodeError, KeyError) as e:
         logger.error(f"Failed to parse Ollama response: {e}")
