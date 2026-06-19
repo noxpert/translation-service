@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db.init_db import init_db
-from app.routers import lookup, phrases, search, translate, words
+from app.routers import lookup, phrases, search, translate, validate, words
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ app = FastAPI(
 
 app.include_router(lookup.router)
 app.include_router(translate.router)
+app.include_router(validate.router)
 app.include_router(search.router)
 app.include_router(words.router)
 app.include_router(phrases.router)

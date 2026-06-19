@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.services.ollama import translate
+from app.services.ollama import translate, validate
 
 VALID_RESULT = {
     "source_text": "alma",
@@ -186,3 +186,59 @@ async def test_translate_collapses_all_null_synonyms_to_none():
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
         result, _ = await translate("alma", "Hungarian", "English")
     assert result["synonyms"] is None
+
+
+# --- validate() tests ---
+
+VALID_VALIDATE_RESULT = {"is_valid": True, "corrections": None}
+INVALID_VALIDATE_RESULT = {"is_valid": False, "corrections": ["alma", "almák"]}
+
+
+@pytest.mark.asyncio
+async def test_validate_returns_valid_result():
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(VALID_VALIDATE_RESULT)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, timings = await validate("alma", "Hungarian")
+    assert result["is_valid"] is True
+    assert result["corrections"] is None
+    assert len(timings) == 1
+    assert timings[0] >= 0
+
+
+@pytest.mark.asyncio
+async def test_validate_returns_corrections_when_invalid():
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(INVALID_VALIDATE_RESULT)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alme", "Hungarian")
+    assert result["is_valid"] is False
+    assert result["corrections"] == ["alma", "almák"]
+
+
+@pytest.mark.asyncio
+async def test_validate_filters_null_entries_from_corrections():
+    raw = {"is_valid": False, "corrections": [None, "alma", None]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(raw)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alme", "Hungarian")
+    assert result["corrections"] == ["alma"]
+
+
+@pytest.mark.asyncio
+async def test_validate_collapses_all_null_corrections_to_none():
+    raw = {"is_valid": False, "corrections": [None, None]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(raw)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alme", "Hungarian")
+    assert result["corrections"] is None
+
+
+@pytest.mark.asyncio
+async def test_validate_sends_text_and_lang_in_prompt():
+    mock_cls, _, mock_client = _make_mock_client({"response": json.dumps(VALID_VALIDATE_RESULT)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        await validate("alma", "Hungarian")
+    call_kwargs = mock_client.post.call_args
+    payload = call_kwargs.kwargs["json"] if call_kwargs.kwargs else call_kwargs[1]["json"]
+    assert "alma" in payload["prompt"]
+    assert "Hungarian" in payload["prompt"]
+    assert payload["stream"] is False

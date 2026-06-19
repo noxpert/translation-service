@@ -12,6 +12,33 @@ logger = logging.getLogger(__name__)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "translategemma:27b")
 
+VALIDATE_PROMPT_TEMPLATE = """You are a multilingual linguistics assistant and spelling checker.
+
+Check whether the following text is correctly written in {lang_name}.
+Consider spelling, grammar, diacritical marks, and natural usage.
+
+IMPORTANT — diacritical marks are never optional:
+- In Hungarian, á é í ó ö ő ú ü ű are completely different letters from a e i o u.
+  Writing "u" when the correct letter is "ü", or "e" when it should be "é", is a spelling error.
+  Treat any missing or substituted accent as an error, even if the word is otherwise recognisable.
+- Apply the same strict rule for any language that uses diacritical marks.
+
+Input text: "{text}"
+
+Respond ONLY with a valid JSON object. No explanation, no markdown, no code fences.
+
+The JSON must have exactly these fields:
+{{
+  "is_valid": <true if the text is correct, false if it contains any error>,
+  "corrections": ["<corrected version>", "..."] or null
+}}
+
+Rules:
+- If is_valid is true, corrections must be null
+- If is_valid is false, provide 1 to 3 corrected versions of the full text in order of likelihood
+- Corrections should be minimal — fix only the actual errors, preserve the user's intended meaning
+- Return null for corrections if you are not confident about any correction"""
+
 PROMPT_TEMPLATE = """You are a multilingual linguistics assistant.
 
 Translate the following text from {source_lang_name} to {target_lang_name}.
@@ -91,6 +118,53 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
         synonyms = result.get("synonyms")
         if isinstance(synonyms, list):
             result["synonyms"] = [s for s in synonyms if s is not None] or None
+
+        return result, [duration_ms]
+    except (json.JSONDecodeError, KeyError) as e:
+        logger.error(f"Failed to parse Ollama response: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail="Ollama returned invalid output",
+        )
+
+
+async def validate(text: str, lang_name: str) -> tuple[dict, list[float]]:
+    """Call Ollama to check whether text is correctly written and return corrections if not."""
+    prompt = VALIDATE_PROMPT_TEMPLATE.format(lang_name=lang_name, text=text)
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            t0 = time.monotonic()
+            response = await client.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "prompt": prompt,
+                    "stream": False,
+                },
+            )
+            duration_ms = round((time.monotonic() - t0) * 1000, 2)
+            response.raise_for_status()
+    except (httpx.HTTPError, httpx.ConnectError) as e:
+        logger.error(f"Ollama request failed: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail="Ollama service unavailable or returned an error",
+        )
+
+    try:
+        ollama_response = response.json()
+        raw_text = ollama_response["response"]
+
+        cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip())
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+
+        result = json.loads(cleaned)
+
+        # Normalise corrections: filter null entries, collapse empty list to null
+        corrections = result.get("corrections")
+        if isinstance(corrections, list):
+            result["corrections"] = [c for c in corrections if c is not None] or None
 
         return result, [duration_ms]
     except (json.JSONDecodeError, KeyError) as e:
