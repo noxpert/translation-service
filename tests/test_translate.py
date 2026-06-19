@@ -8,6 +8,7 @@ MOCK_TRANSLATE_RESULT = {
     "part_of_speech": "noun",
     "root_source": "várakozás",
     "root_target": "waiting",
+    "synonyms": None,
     "notes": "Nominalized form of várakozni (to wait).",
 }
 
@@ -101,3 +102,31 @@ def test_translate_missing_text_returns_422(mock_translate, client):
         json={"source_lang": "hu", "target_lang": "en"},
     )
     assert response.status_code == 422
+
+
+@patch("app.services.ollama.translate", new_callable=AsyncMock)
+def test_translate_returns_synonyms(mock_translate, client):
+    result = {**MOCK_TRANSLATE_RESULT, "synonyms": ["várakoztatás", "türelem"]}
+    mock_translate.return_value = result
+
+    response = client.post(
+        "/translate",
+        json={"text": "várakozás", "source_lang": "hu", "target_lang": "en"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["synonyms"] == ["várakoztatás", "türelem"]
+
+
+@patch("app.services.ollama.translate", new_callable=AsyncMock)
+def test_translate_null_synonyms_for_phrase(mock_translate, client):
+    result = {**MOCK_TRANSLATE_RESULT, "synonyms": None}
+    mock_translate.return_value = result
+
+    response = client.post(
+        "/translate",
+        json={"text": "Jó reggelt kívánok", "source_lang": "hu", "target_lang": "en"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["synonyms"] is None

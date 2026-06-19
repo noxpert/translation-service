@@ -46,5 +46,6 @@ async def translate_text(
         part_of_speech=pos_value,  # type: ignore[arg-type]
         root_source=result.get("root_source"),
         root_target=result.get("root_target"),
+        synonyms=result.get("synonyms"),
         notes=result.get("notes"),
     )

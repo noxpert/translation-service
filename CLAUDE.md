@@ -28,7 +28,8 @@ Intended to serve multiple small language-learning apps.
 - POST to {OLLAMA_BASE_URL}/api/generate with stream: false
 - The model returns a 'response' field containing the JSON string
 - Always strip markdown code fences before JSON parsing
-- Default model: translategemma:27b
+- Supported local models: `translategemma:12b`, `translategemma:27b`, `qwen3.6:35b-a3b`
+- Model is configured via `OLLAMA_MODEL` in `.env` (single source of truth); docker-compose fallback is `translategemma:27b`
 - Timeout: 60 seconds
 
 ## Database
