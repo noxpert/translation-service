@@ -15,4 +15,5 @@ class TranslateResponse(BaseModel):
     part_of_speech: str | None = None
     root_source: str | None = None
     root_target: str | None = None
+    synonyms: list[str] | None = None
     notes: str | None = None

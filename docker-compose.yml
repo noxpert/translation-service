@@ -10,7 +10,7 @@ services:
       - PORT=${PORT:-8081}
       - DATABASE_URL=sqlite:////data/translations.db
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - OLLAMA_MODEL=translategemma:27b
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-translategemma:27b}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

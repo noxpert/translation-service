@@ -7,7 +7,7 @@ My primary use case is for English <-> Hungarian translations, but it need not b
 ## Prerequisites
 
 - Docker Desktop (or Docker + Docker Compose)
-- Ollama running locally with `translategemma:27b` (or another translation model)
+- Ollama running locally with one of: `translategemma:12b`, `translategemma:27b`, `qwen3.6:35b-a3b`
 
 For local linting and type checking (optional):
 
@@ -86,10 +86,18 @@ To back up: copy `./data/translations.db` to your preferred cloud sync folder.
 
 ## Ollama Model Note
 
-The default model is `translategemma:27b`. This model requires a single user message
-with no system role in the prompt. Do not add a system prompt to the Ollama request.
+Set `OLLAMA_MODEL` in `.env` to choose which model to use — that is the single place
+to configure it. `docker-compose.yml` reads `OLLAMA_MODEL` from `.env` and falls back
+to `translategemma:27b` if the variable is unset. All models require a single user
+message with **no system role** in the Ollama request.
 
-Override via `OLLAMA_MODEL` in your `.env` to use a different model.
+| Model | RAM (approx.) | Speed | Translation quality |
+|---|---|---|---|
+| `translategemma:12b` | ~8 GB | Fast | Good — fine for common vocabulary, struggles with rare words and complex grammar |
+| `translategemma:27b` | ~16 GB | Moderate | Better — handles inflected forms and nuance more reliably |
+| `qwen3.6:35b-a3b` | ~22 GB | Fast (MoE, 3B active) | Best — highest accuracy; large expert pool with near-dense-27b inference cost |
+
+RAM figures are approximate at Q4_K_M quantization and will vary by system.
 
 ## Adding a New Source App
 

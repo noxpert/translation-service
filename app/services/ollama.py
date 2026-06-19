@@ -26,6 +26,7 @@ The JSON must have exactly these fields:
   "part_of_speech": "<one of: noun, verb, adj, adv, other, or null if a phrase>",
   "root_source": "<root/lemma form in source language, or null if input is already the root>",
   "root_target": "<translation of the root form, or null>",
+  "synonyms": ["<synonym in {source_lang_name}>", "..."],
   "notes": "<brief linguistic notes about the translation, or null>"
 }}
 
@@ -36,6 +37,7 @@ Rules:
   For Hungarian nouns/adjectives remove case suffixes to get the base form (e.g. autóba → autó, házban → ház).
   For nouns derived from verbs, use the noun as the root, not the underlying verb.
 - root_target: the {target_lang_name} translation of root_source, or null if root_source is null
+- synonyms: up to 4 synonyms in {source_lang_name} in the same form as the input, or null if the input is a phrase or if no confident synonyms exist
 - notes: mention conjugation pattern, suffix meaning, or alternate meanings if relevant
 - Return null for any field you are not confident about rather than guessing"""
 
