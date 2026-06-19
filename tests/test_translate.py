@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 
-MOCK_TRANSLATE_RESULT = {
+MOCK_TRANSLATE_DICT = {
     "source_text": "várakozás",
     "target_text": "waiting",
     "part_of_speech": "noun",
@@ -11,6 +11,7 @@ MOCK_TRANSLATE_RESULT = {
     "synonyms": None,
     "notes": "Nominalized form of várakozni (to wait).",
 }
+MOCK_TRANSLATE_RESULT = (MOCK_TRANSLATE_DICT, [123.45])
 
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
@@ -32,6 +33,7 @@ def test_translate_valid_request(mock_translate, client):
     assert data["root_source"] == "várakozás"
     assert data["root_target"] == "waiting"
     assert data["notes"] is not None
+    assert data["ollama_calls_ms"] == [123.45]
 
 
 def test_translate_invalid_source_lang(client):
@@ -67,9 +69,9 @@ def test_translate_ollama_failure(mock_translate, client):
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
 def test_translate_unknown_pos_normalized_to_other(mock_translate, client):
-    result = MOCK_TRANSLATE_RESULT.copy()
+    result = MOCK_TRANSLATE_DICT.copy()
     result["part_of_speech"] = "pronoun"
-    mock_translate.return_value = result
+    mock_translate.return_value = (result, [123.45])
 
     response = client.post(
         "/translate",
@@ -82,9 +84,9 @@ def test_translate_unknown_pos_normalized_to_other(mock_translate, client):
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
 def test_translate_null_pos_stays_null(mock_translate, client):
-    result = MOCK_TRANSLATE_RESULT.copy()
+    result = MOCK_TRANSLATE_DICT.copy()
     result["part_of_speech"] = None
-    mock_translate.return_value = result
+    mock_translate.return_value = (result, [123.45])
 
     response = client.post(
         "/translate",
@@ -106,8 +108,8 @@ def test_translate_missing_text_returns_422(mock_translate, client):
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
 def test_translate_returns_synonyms(mock_translate, client):
-    result = {**MOCK_TRANSLATE_RESULT, "synonyms": ["várakoztatás", "türelem"]}
-    mock_translate.return_value = result
+    result = {**MOCK_TRANSLATE_DICT, "synonyms": ["várakoztatás", "türelem"]}
+    mock_translate.return_value = (result, [123.45])
 
     response = client.post(
         "/translate",
@@ -120,8 +122,8 @@ def test_translate_returns_synonyms(mock_translate, client):
 
 @patch("app.services.ollama.translate", new_callable=AsyncMock)
 def test_translate_null_synonyms_for_phrase(mock_translate, client):
-    result = {**MOCK_TRANSLATE_RESULT, "synonyms": None}
-    mock_translate.return_value = result
+    result = {**MOCK_TRANSLATE_DICT, "synonyms": None}
+    mock_translate.return_value = (result, [123.45])
 
     response = client.post(
         "/translate",

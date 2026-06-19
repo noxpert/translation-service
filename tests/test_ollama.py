@@ -36,10 +36,12 @@ def _make_mock_client(response_payload: dict) -> tuple:
 async def test_translate_returns_parsed_result():
     mock_cls, _, _ = _make_mock_client({"response": json.dumps(VALID_RESULT)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, timings = await translate("alma", "Hungarian", "English")
     assert result["source_text"] == "alma"
     assert result["target_text"] == "apple"
     assert result["part_of_speech"] == "noun"
+    assert len(timings) == 1
+    assert timings[0] >= 0
 
 
 @pytest.mark.asyncio
@@ -47,7 +49,7 @@ async def test_translate_strips_json_code_fence():
     fenced = f"```json\n{json.dumps(VALID_RESULT)}\n```"
     mock_cls, _, _ = _make_mock_client({"response": fenced})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["target_text"] == "apple"
 
 
@@ -56,7 +58,7 @@ async def test_translate_strips_plain_code_fence():
     fenced = f"```\n{json.dumps(VALID_RESULT)}\n```"
     mock_cls, _, _ = _make_mock_client({"response": fenced})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["target_text"] == "apple"
 
 
@@ -136,7 +138,7 @@ async def test_translate_handles_null_root_without_error():
     result_with_null_root = {**VALID_RESULT, "root_source": None, "root_target": None}
     mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_null_root)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["root_source"] is None
 
 
@@ -145,7 +147,7 @@ async def test_translate_nulls_root_when_equal_to_input():
     result_with_same_root = {**VALID_RESULT, "root_source": "alma", "root_target": "apple"}
     mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_same_root)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["root_source"] is None
     assert result["root_target"] is None
 
@@ -155,7 +157,7 @@ async def test_translate_nulls_root_case_insensitive():
     result_with_same_root = {**VALID_RESULT, "root_source": "Alma", "root_target": "apple"}
     mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_same_root)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["root_source"] is None
 
 
@@ -164,5 +166,23 @@ async def test_translate_keeps_root_when_different_from_input():
     result_with_root = {**VALID_RESULT, "root_source": "almafa", "root_target": "apple tree"}
     mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_root)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result = await translate("alma", "Hungarian", "English")
+        result, _ = await translate("alma", "Hungarian", "English")
     assert result["root_source"] == "almafa"
+
+
+@pytest.mark.asyncio
+async def test_translate_filters_null_entries_from_synonyms():
+    result_with_null_synonyms = {**VALID_RESULT, "synonyms": [None, "körte", None]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_null_synonyms)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await translate("alma", "Hungarian", "English")
+    assert result["synonyms"] == ["körte"]
+
+
+@pytest.mark.asyncio
+async def test_translate_collapses_all_null_synonyms_to_none():
+    result_all_null_synonyms = {**VALID_RESULT, "synonyms": [None, None]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_all_null_synonyms)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await translate("alma", "Hungarian", "English")
+    assert result["synonyms"] is None

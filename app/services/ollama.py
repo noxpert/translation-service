@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import time
 
 import httpx
 from fastapi import HTTPException
@@ -42,8 +43,8 @@ Rules:
 - Return null for any field you are not confident about rather than guessing"""
 
 
-async def translate(text: str, source_lang_name: str, target_lang_name: str) -> dict:
-    """Call Ollama to translate text and return enriched linguistic data."""
+async def translate(text: str, source_lang_name: str, target_lang_name: str) -> tuple[dict, list[float]]:
+    """Call Ollama to translate text and return enriched linguistic data with per-call timings in ms."""
     prompt = PROMPT_TEMPLATE.format(
         source_lang_name=source_lang_name,
         target_lang_name=target_lang_name,
@@ -52,6 +53,7 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
+            t0 = time.monotonic()
             response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/generate",
                 json={
@@ -60,6 +62,7 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
                     "stream": False,
                 },
             )
+            duration_ms = round((time.monotonic() - t0) * 1000, 2)
             response.raise_for_status()
     except (httpx.HTTPError, httpx.ConnectError) as e:
         logger.error(f"Ollama request failed: {e}")
@@ -84,7 +87,12 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
             result["root_source"] = None
             result["root_target"] = None
 
-        return result
+        # Ollama sometimes returns [null, ...] instead of null; strip null entries
+        synonyms = result.get("synonyms")
+        if isinstance(synonyms, list):
+            result["synonyms"] = [s for s in synonyms if s is not None] or None
+
+        return result, [duration_ms]
     except (json.JSONDecodeError, KeyError) as e:
         logger.error(f"Failed to parse Ollama response: {e}")
         raise HTTPException(
