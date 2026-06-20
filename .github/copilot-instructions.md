@@ -61,6 +61,7 @@ Two functions in `app/services/ollama.py`:
 - conftest.py provides an in-memory SQLite DB and overrides get_db
 - Seed languages and parts_of_speech in conftest fixtures
 - Mock `app.services.ollama.translate` in translate tests; also mock `app.services.ollama.get_synonyms` when `root_source` is non-null
+- Live-Ollama integration/performance tests live in tests/integration/ and are opt-in via `RUN_OLLAMA_INTEGRATION` (run with `make test-integration`); the default suite is fully mocked and skips them. They warm the model with one untimed call per endpoint, then record inputs/outputs/timings to tests/integration/results/ (JSON + Markdown) for both passing and failing runs. Report filenames embed the model + UTC timestamp so runs never overwrite each other. Run several models with `make test-integration-models MODELS="..."` (scripts/run_integration.sh) and diff 2-3 result files with `make compare FILES="..."` (scripts/compare_runs.py).
 
 ## Common Patterns
 

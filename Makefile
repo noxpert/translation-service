@@ -37,6 +37,26 @@ test-short:
 		translation-service \
 		pytest tests/ -q
 
+## Run live-Ollama integration/performance tests (needs a running Ollama); writes reports to tests/integration/results/
+test-integration:
+	mkdir -p tests/integration/results
+	docker compose run --rm \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
+		-e RUN_OLLAMA_INTEGRATION=1 \
+		-e INTEGRATION_RESULTS_DIR=/results \
+		-v "$(CURDIR)/tests/integration/results:/results" \
+		translation-service \
+		pytest tests/integration -v -s
+
+## Run the integration suite for several models (usage: make test-integration-models MODELS="translategemma:12b qwen3.6:35b-a3b"; defaults to all three)
+test-integration-models:
+	scripts/run_integration.sh $(MODELS)
+
+## Compare 2-3 integration result files (usage: make compare FILES="tests/integration/results/a.json tests/integration/results/b.json")
+compare:
+	python3 scripts/compare_runs.py $(FILES)
+
 ## Run a specific test file (usage: make test-file FILE=tests/test_words.py)
 test-file:
 	docker compose run --rm \
