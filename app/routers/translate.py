@@ -1,3 +1,6 @@
+import logging
+import time
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -7,6 +10,7 @@ from app.models.part_of_speech import PartOfSpeech
 from app.schemas.translate import TranslateRequest, TranslateResponse
 from app.services import ollama
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Translation"])
 
 
@@ -16,6 +20,9 @@ async def translate_text(
     db: Session = Depends(get_db),
 ):
     text, source_lang, target_lang = body.text, body.source_lang, body.target_lang
+    t_request = time.monotonic()
+    logger.info("translate request text=%r src=%s tgt=%s", text, source_lang, target_lang)
+
     # Validate language codes
     source = db.query(Language).filter(Language.code == source_lang).first()
     if source is None:
@@ -25,8 +32,9 @@ async def translate_text(
     if target is None:
         raise HTTPException(status_code=400, detail=f"Unknown target language: {target_lang}")
 
-    # Call Ollama
-    result = await ollama.translate(text, source.name, target.name)  # type: ignore[arg-type]
+    # Call 1+2: Translate
+    result, translate_timings = await ollama.translate(text, source.name, target.name)  # type: ignore[arg-type]
+    ollama_calls_ms: dict[str, float] = {"translate": translate_timings[0]}
 
     # Normalize part_of_speech against the lookup table
     pos_value = result.get("part_of_speech")
@@ -38,6 +46,19 @@ async def translate_text(
         else:
             pos_value = pos_row.code
 
+    # Call 3 (optional): Synonyms — only when a root form was identified
+    synonyms = None
+    if result.get("root_source") is not None:
+        source_text = result.get("root_source", text)
+        target_text = result.get("root_target", "")
+        synonyms, syn_timings = await ollama.get_synonyms(
+            source_text, target_text, pos_value, source.name, target.name  # type: ignore[arg-type]
+        )
+        ollama_calls_ms["synonyms"] = syn_timings[0]
+
+    total_ms = round((time.monotonic() - t_request) * 1000, 2)
+    logger.info("translate complete total_ms=%.2f calls=%s", total_ms, ollama_calls_ms)
+
     return TranslateResponse(
         source_text=result.get("source_text", text),
         target_text=result.get("target_text", ""),
@@ -46,6 +67,7 @@ async def translate_text(
         part_of_speech=pos_value,  # type: ignore[arg-type]
         root_source=result.get("root_source"),
         root_target=result.get("root_target"),
-        synonyms=result.get("synonyms"),
+        synonyms=synonyms,
         notes=result.get("notes"),
+        ollama_calls_ms=ollama_calls_ms,
     )

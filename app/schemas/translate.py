@@ -17,3 +17,4 @@ class TranslateResponse(BaseModel):
     root_target: str | None = None
     synonyms: list[str] | None = None
     notes: str | None = None
+    ollama_calls_ms: dict[str, float]

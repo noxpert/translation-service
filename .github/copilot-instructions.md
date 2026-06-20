@@ -36,6 +36,13 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 - Parse the 'response' field from the result; strip any ```json fences
 - Raise HTTPException(502) on any failure
 
+## Translate Endpoint — Ollama Call Pattern
+Two functions in `app/services/ollama.py`:
+- `translate()` — always called; returns translation fields (no synonyms)
+- `get_synonyms()` — called only when `root_source` is non-null (inflected/conjugated input)
+
+`TranslateResponse.ollama_calls_ms` is `dict[str, float]`: key `"translate"` always present, key `"synonyms"` added when the second call is made.
+
 ## CI/CD
 - GitHub Actions at .github/workflows/ci.yml — triggers on PRs to main and pushes to main
 - `lint` job: runs ruff and mypy directly on the runner (no Docker)
@@ -53,7 +60,7 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 - Coverage report: make coverage (uses pytest-cov)
 - conftest.py provides an in-memory SQLite DB and overrides get_db
 - Seed languages and parts_of_speech in conftest fixtures
-- Mock app.services.ollama.translate in translate tests
+- Mock `app.services.ollama.translate` in translate tests; also mock `app.services.ollama.get_synonyms` when `root_source` is non-null
 
 ## Common Patterns
 
