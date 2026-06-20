@@ -32,6 +32,13 @@ Intended to serve multiple small language-learning apps.
 - Model is configured via `OLLAMA_MODEL` in `.env` (single source of truth); docker-compose fallback is `translategemma:27b`
 - Timeout: 60 seconds
 
+## Translate Endpoint — Ollama Call Pattern
+The `/translate` endpoint makes one or two Ollama calls:
+1. **translate** (always) — returns source_text, target_text, part_of_speech, root_source, root_target, notes
+2. **synonyms** (optional) — called only when `root_source` is non-null (i.e. input was inflected/conjugated); takes source word, target word, and POS; returns synonyms list
+
+`ollama_calls_ms` in the response is a `dict[str, float]` with keys `"translate"` and optionally `"synonyms"`, each holding the wall-clock duration in ms for that call.
+
 ## Database
 - DATABASE_URL env var controls connection (four slashes for absolute SQLite path)
 - Tests use in-memory SQLite; never use the host database file in tests

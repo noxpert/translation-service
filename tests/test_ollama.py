@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from app.services.ollama import translate, validate
+from app.services.ollama import get_synonyms, translate, validate
 
 VALID_RESULT = {
     "source_text": "alma",
@@ -14,6 +14,8 @@ VALID_RESULT = {
     "root_target": "apple",
     "notes": None,
 }
+
+VALID_SYNONYMS_RESULT = {"synonyms": ["körte", "szilva"]}
 
 
 def _make_mock_client(response_payload: dict) -> tuple:
@@ -171,21 +173,63 @@ async def test_translate_keeps_root_when_different_from_input():
 
 
 @pytest.mark.asyncio
-async def test_translate_filters_null_entries_from_synonyms():
-    result_with_null_synonyms = {**VALID_RESULT, "synonyms": [None, "körte", None]}
-    mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_with_null_synonyms)})
+async def test_get_synonyms_returns_parsed_list():
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(VALID_SYNONYMS_RESULT)})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result, _ = await translate("alma", "Hungarian", "English")
-    assert result["synonyms"] == ["körte"]
+        synonyms, timings = await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    assert synonyms == ["körte", "szilva"]
+    assert len(timings) == 1
+    assert timings[0] >= 0
 
 
 @pytest.mark.asyncio
-async def test_translate_collapses_all_null_synonyms_to_none():
-    result_all_null_synonyms = {**VALID_RESULT, "synonyms": [None, None]}
-    mock_cls, _, _ = _make_mock_client({"response": json.dumps(result_all_null_synonyms)})
+async def test_get_synonyms_returns_none_when_null():
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps({"synonyms": None})})
     with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
-        result, _ = await translate("alma", "Hungarian", "English")
-    assert result["synonyms"] is None
+        synonyms, _ = await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    assert synonyms is None
+
+
+@pytest.mark.asyncio
+async def test_get_synonyms_filters_null_entries():
+    mock_cls, _, _ = _make_mock_client(
+        {"response": json.dumps({"synonyms": [None, "körte", None]})}
+    )
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        synonyms, _ = await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    assert synonyms == ["körte"]
+
+
+@pytest.mark.asyncio
+async def test_get_synonyms_collapses_all_null_to_none():
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps({"synonyms": [None, None]})})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        synonyms, _ = await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    assert synonyms is None
+
+
+@pytest.mark.asyncio
+async def test_get_synonyms_sends_source_target_and_pos_in_prompt():
+    mock_cls, _, mock_client = _make_mock_client(
+        {"response": json.dumps(VALID_SYNONYMS_RESULT)}
+    )
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    call_kwargs = mock_client.post.call_args
+    payload = call_kwargs.kwargs["json"] if call_kwargs.kwargs else call_kwargs[1]["json"]
+    assert "alma" in payload["prompt"]
+    assert "apple" in payload["prompt"]
+    assert "noun" in payload["prompt"]
+    assert payload["stream"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_synonyms_invalid_json_raises_502():
+    mock_cls, _, _ = _make_mock_client({"response": "not valid json {"})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        with pytest.raises(HTTPException) as exc_info:
+            await get_synonyms("alma", "apple", "noun", "Hungarian", "English")
+    assert exc_info.value.status_code == 502
 
 
 # --- validate() tests ---

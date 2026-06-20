@@ -66,6 +66,7 @@ path `/data/translations.db` inside the container.
 |--------|------|-------------|
 | GET    | `/` | Health check |
 | POST   | `/translate` | Translate text via Ollama |
+| POST   | `/validate` | Check spelling/grammar via Ollama |
 | POST   | `/search` | Search stored words and phrases by text |
 | GET    | `/languages` | List all languages |
 | GET    | `/parts-of-speech` | List all parts of speech |
