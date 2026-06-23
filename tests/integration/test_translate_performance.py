@@ -76,7 +76,23 @@ def test_translate(case, warm_translate_client, recorder):
         ),
     })
 
-    passed = ok_status and ok_root and ok_translation
+    # Notes check — only for cases that declare ``notes_must_mention``.
+    ok_notes = True
+    notes_must_mention = case.get("notes_must_mention")
+    if notes_must_mention:
+        notes_text = normalize(data.get("notes") or "")
+        matched_notes = [t for t in notes_must_mention if normalize(t) in notes_text]
+        ok_notes = bool(matched_notes)
+        checks.append({
+            "name": "notes_must_mention",
+            "passed": ok_notes,
+            "detail": (
+                f"expected any of {notes_must_mention} in notes {data.get('notes')!r}; "
+                f"matched {matched_notes}"
+            ),
+        })
+
+    passed = ok_status and ok_root and ok_translation and ok_notes
     recorder.add(
         endpoint="/translate",
         case_id=case["id"],
@@ -88,6 +104,7 @@ def test_translate(case, warm_translate_client, recorder):
         expected={
             "root_source": case["expected_root"],
             "keywords": case["keywords"],
+            "notes_must_mention": notes_must_mention,
         },
         checks=checks,
         passed=passed,
@@ -103,3 +120,7 @@ def test_translate(case, warm_translate_client, recorder):
     assert ok_translation, (
         f"none of {case['keywords']} found in target_text {target_text!r}"
     )
+    if notes_must_mention:
+        assert ok_notes, (
+            f"none of {notes_must_mention} found in notes {data.get('notes')!r}"
+        )
