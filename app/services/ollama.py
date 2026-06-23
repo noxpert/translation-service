@@ -13,6 +13,10 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "translategemma:27b")
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120"))
 
+# Greedy decoding: eliminates synonym swaps, re-punctuation, and inconsistent
+# valid/invalid judgements that high temperature introduces.
+DECODE_OPTIONS = {"temperature": 0, "top_p": 1, "repeat_penalty": 1.0}
+
 VALIDATE_PROMPT_TEMPLATE = """You are a multilingual linguistics assistant and spelling checker.
 
 Check whether the following text is correctly written in {lang_name}.
@@ -24,6 +28,13 @@ IMPORTANT — diacritical marks are never optional:
   Treat any missing or substituted accent as an error, even if the word is otherwise recognisable.
 - Apply the same strict rule for any language that uses diacritical marks.
 
+IMPORTANT — Hungarian compound words:
+Hungarian productively forms closed compounds by joining nouns/adjectives with no spaces
+(e.g. katedraasztal, vasútállomás, természettudomány). Do NOT split a compound into separate
+words and do NOT mark it invalid just because it is unfamiliar or long. A compound is valid
+as long as it is correctly spelled with correct diacritics; only flag it when it contains an
+actual letter/diacritic error, and when correcting keep it as one word.
+
 Input text: "{text}"
 
 Respond ONLY with a valid JSON object. No explanation, no markdown, no code fences.
@@ -34,11 +45,48 @@ The JSON must have exactly these fields:
   "corrections": ["<corrected version>", "..."] or null
 }}
 
+Examples:
+1. Valid fragment, lowercase, no period:
+   Input "katedraasztalán" -> {{"is_valid": true, "corrections": null}}
+2. Diacritic-only error, surgical fix, nothing else changed:
+   Input "termesetrajzi" -> {{"is_valid": false, "corrections": ["természetrajzi"]}}
+3. Correct archaic phrasing left untouched (no modernisation):
+   Input "annak jeléül, hogy az a vegyület ... csakugyan zöldre festette"
+     -> {{"is_valid": true, "corrections": null}}
+4. Literary "s" (meaning "and") must NOT become "és" or gain a comma; fix only the
+   actual character-level errors and copy EVERY word verbatim — including all words
+   that follow the corrected word:
+   Input "Az ablakok tárva-nyitva voltak a melleg napon s a fris szellő szárnyán berepult a muzsika a terembe."
+     -> {{"is_valid": false, "corrections": ["Az ablakok tárva-nyitva voltak a meleg napon s a friss szellő szárnyán berepült a muzsika a terembe."]}}
+   (Three fixes: "melleg"→"meleg", "fris"→"friss", "berepult"→"berepült";
+    "s", "a muzsika", "a terembe" all copied verbatim — no word is ever omitted)
+
 Rules:
+- The input may be a single word, a phrase, a clause, or a full sentence. A fragment is NOT
+  an error: do not mark text invalid merely because it starts lowercase, lacks final
+  punctuation, or is not a complete sentence.
+- Correctly-spelled archaic, literary, dialectal, or old-fashioned Hungarian is VALID. Only
+  spelling, diacritic, and clear grammatical errors count. Never set is_valid to false just
+  because more modern or more formal phrasing exists.
 - If is_valid is true, corrections must be null
 - If is_valid is false, provide 1 to 3 corrected versions of the full text in order of likelihood
-- Corrections should be minimal — fix only the actual errors, preserve the user's intended meaning
-- Return null for corrections if you are not confident about any correction"""
+- Corrections must be SURGICAL. Copy the input verbatim and change ONLY the specific characters
+  that are misspelled (wrong letters, missing or wrong diacritics). The correction must contain
+  every word from the input — never omit, add, or reorder any word. Preserve word order,
+  capitalisation, punctuation, and conjunctions exactly. Do NOT substitute synonyms, do NOT
+  modernise archaic words, do NOT change "s" to "és" or "melyről" to "amelyről", do NOT add or
+  remove a leading capital letter, and do NOT add or remove commas unless a comma is itself
+  unambiguously wrong. The correction should differ from the input at as few characters as
+  possible.
+- Return null for corrections if you are not confident about any correction
+- Dropping one letter from a doubled (geminate) consonant always produces a different word or
+  a non-word — it is NEVER a valid alternate spelling. Flag it as invalid regardless of any
+  uncertainty. Do not apply the tie-breaker below to geminate reductions.
+    megcsinálata (one 'l' dropped from megcsinálta) → is_valid: false
+- If you are uncertain whether a word, compound, or construction is valid, set is_valid to true
+  and corrections to null. Only set is_valid to false when you are confident there is a genuine
+  spelling error or diacritical mistake. Err on the side of accepting correct text rather than
+  over-correcting valid text."""
 
 PROMPT_TEMPLATE = """You are a multilingual linguistics assistant.
 
@@ -60,12 +108,46 @@ The JSON must have exactly these fields:
 
 Rules:
 - part_of_speech should be null if the input is a phrase or clause
-- root_source: the dictionary/lemma form of the input word — only set this if the input is inflected or conjugated, otherwise null.
-  For Hungarian verbs the lemma is always the infinitive ending in -ni/-ani/-eni (e.g. sietek → sietni, olvasom → olvasni, futok → futni, ment → menni, van → lenni).
-  For Hungarian nouns/adjectives remove case suffixes to get the base form (e.g. autóba → autó, házban → ház).
-  For nouns derived from verbs, use the noun as the root, not the underlying verb.
+- root_source: the dictionary/lemma form of the input word — only set this if the
+  input is inflected or conjugated, otherwise null. Three rules govern this:
+
+  RULE A — Uninflected derivational forms: if the word's ONLY morphology is a
+  derivational suffix (not also conjugated or declined), that derived form IS the
+  base — set root_source to null.
+    természetrajzi (természetrajz + relational-adj -i, no case suffix) → null
+    boldogság (boldog + -ság abstract-noun suffix, no case suffix) → null
+
+  RULE B — Inflected/conjugated words: if the word carries any inflectional suffix
+  (case ending, conjugation, possessive agreement), set root_source to the lemma —
+  even when derivational morphology is also present.
+    For VERBS the lemma is ALWAYS the infinitive ending in -ni/-ani/-eni. NEVER use
+    the bare verb stem — always the full infinitive.
+      látom  → látni   (NOT "lát")
+      látok  → látni   (NOT "lát")
+      olvastatja → olvastatni  (causative -tat + 3sg conjugation → infinitive of derived verb)
+      járogat    → járogatni   (frequentative -gat + 3sg conjugation → infinitive of derived verb)
+    For NOUNS/ADJECTIVES remove inflectional suffixes AND comparative/superlative
+    morphology to reach the bare positive-form noun/adjective, including the full
+    compound when the input is a compound noun.
+      autóba → autó
+      házban → ház
+      katedraasztalán → katedraasztal  (compound noun + -án inessive suffix)
+      legszebbjeit → szép  (leg- superlative + szép→szebb + -bb + -jei + -t; root is the
+                            bare positive adjective, NOT "legszép" or "legszebb")
+
+  RULE C — Nouns derived from verbs: use the noun as root, not the underlying verb.
+
 - root_target: the {target_lang_name} translation of root_source, or null if root_source is null
-- notes: mention conjugation pattern, suffix meaning, or alternate meanings if relevant
+- notes: mention conjugation pattern, suffix meaning, or alternate meanings if relevant.
+  For Hungarian verb forms, notes MUST state whether the conjugation is definite
+  (definite-object agreement) or indefinite — this distinction is invisible in English.
+  If the input is a homograph (same form, multiple meanings or word classes), notes is
+  REQUIRED: explain both readings and state which this translation assumes.
+    vár: could be noun "castle/fort" or verb "to wait" — notes must name both.
+  Hungarian 3rd-person possessive suffixes (-a/-e/-ja/-je and plural forms) are
+  gender-neutral. Use "his/her" for singular human possessors, "their" for plural or
+  unspecified human possessors, and "its" only for clearly non-human possessors.
+    házaiban → "in their houses" or "in his/her houses"  (NOT "in its houses")
 - Return null for any field you are not confident about rather than guessing"""
 
 SYNONYMS_PROMPT_TEMPLATE = """You are a multilingual linguistics assistant.
@@ -110,6 +192,8 @@ async def translate(text: str, source_lang_name: str, target_lang_name: str) -> 
                     "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False,
+                    "format": "json",
+                    "options": DECODE_OPTIONS,
                 },
             )
             duration_ms = round((time.monotonic() - t0) * 1000, 2)
@@ -177,6 +261,8 @@ async def get_synonyms(
                     "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False,
+                    "format": "json",
+                    "options": DECODE_OPTIONS,
                 },
             )
             duration_ms = round((time.monotonic() - t0) * 1000, 2)
@@ -225,6 +311,8 @@ async def validate(text: str, lang_name: str) -> tuple[dict, list[float]]:
                     "model": OLLAMA_MODEL,
                     "prompt": prompt,
                     "stream": False,
+                    "format": "json",
+                    "options": DECODE_OPTIONS,
                 },
             )
             duration_ms = round((time.monotonic() - t0) * 1000, 2)
@@ -249,6 +337,18 @@ async def validate(text: str, lang_name: str) -> tuple[dict, list[float]]:
         corrections = result.get("corrections")
         if isinstance(corrections, list):
             result["corrections"] = [c for c in corrections if c is not None] or None
+
+        # Guard: if the model says invalid but every correction equals the input,
+        # it is self-contradicting — treat as valid.
+        if not result.get("is_valid") and isinstance(result.get("corrections"), list):
+            def _norm(t: str) -> str:
+                return re.sub(r"\s+", " ", t).strip().casefold()
+            input_norm = _norm(text)
+            result["corrections"] = (
+                [c for c in result["corrections"] if _norm(c) != input_norm] or None
+            )
+            if result["corrections"] is None:
+                result["is_valid"] = True
 
         return result, [duration_ms]
     except (json.JSONDecodeError, KeyError) as e:

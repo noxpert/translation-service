@@ -44,16 +44,31 @@ def test_validate(case, warm_validate_client, recorder):
     })
 
     # For misspelled inputs, the correct spelling must be offered as a correction.
+    # correct_texts (list) is checked when present; falls back to correct_text (single string).
     ok_correction = True
-    if case["correct_text"] is not None:
-        wanted = normalize_correction(case["correct_text"])
+    correct_text = case.get("correct_text")
+    correct_texts = case.get("correct_texts")
+    if correct_texts is not None:
+        wanted_set = {normalize_correction(t) for t in correct_texts}
+        found = [c for c in corrections if normalize_correction(c) in wanted_set]
+        ok_correction = bool(found)
+        checks.append({
+            "name": "correct_text_in_corrections",
+            "passed": ok_correction,
+            "detail": (
+                f"expected one of {correct_texts!r} among corrections; "
+                f"got {corrections!r}"
+            ),
+        })
+    elif correct_text is not None:
+        wanted = normalize_correction(correct_text)
         found = [c for c in corrections if normalize_correction(c) == wanted]
         ok_correction = bool(found)
         checks.append({
             "name": "correct_text_in_corrections",
             "passed": ok_correction,
             "detail": (
-                f"expected {case['correct_text']!r} among corrections; "
+                f"expected {correct_text!r} among corrections; "
                 f"got {corrections!r}"
             ),
         })
@@ -69,7 +84,7 @@ def test_validate(case, warm_validate_client, recorder):
         ollama_calls_ms=data.get("ollama_calls_ms"),
         expected={
             "is_valid": case["expected_valid"],
-            "correct_text": case["correct_text"],
+            "correct_text": case.get("correct_texts") or case.get("correct_text"),
         },
         checks=checks,
         passed=passed,
@@ -80,7 +95,7 @@ def test_validate(case, warm_validate_client, recorder):
         f"is_valid mismatch for {case['text']!r}: "
         f"expected {case['expected_valid']}, got {data.get('is_valid')}"
     )
-    if case["correct_text"] is not None:
+    if correct_texts is not None or correct_text is not None:
         assert ok_correction, (
-            f"correction {case['correct_text']!r} not found in {corrections!r}"
+            f"no expected correction found in {corrections!r}"
         )

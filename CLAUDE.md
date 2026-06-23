@@ -25,9 +25,9 @@ Intended to serve multiple small language-learning apps.
 
 ## Ollama Integration (Critical)
 - TranslateGemma requires a SINGLE USER MESSAGE — no system role in the request
-- POST to {OLLAMA_BASE_URL}/api/generate with stream: false
-- The model returns a 'response' field containing the JSON string
-- Always strip markdown code fences before JSON parsing
+- POST to {OLLAMA_BASE_URL}/api/generate with stream: false, format: "json", and options: DECODE_OPTIONS (temperature 0, top_p 1, repeat_penalty 1.0) for deterministic structured output
+- All three calls (translate, get_synonyms, validate) share the module-level DECODE_OPTIONS constant defined in app/services/ollama.py
+- The model returns a 'response' field containing the JSON string; strip markdown code fences before JSON parsing (kept as defensive fallback even though format=json returns clean JSON)
 - Supported local models: `translategemma:12b`, `translategemma:27b`, `qwen3.6:35b-a3b`
 - Model is configured via `OLLAMA_MODEL` in `.env` (single source of truth); docker-compose fallback is `translategemma:27b`
 - Timeout: 60 seconds
