@@ -55,6 +55,17 @@ The `/translate` endpoint makes one or two Ollama calls:
 - Start: make up
 - Run tests: make test
 - Run tests with coverage: make coverage
+- Run live-Ollama integration/performance tests: make test-integration
+  - Opt-in (gated by RUN_OLLAMA_INTEGRATION); the normal suite stays fully mocked and skips these
+  - Lives in tests/integration/ (hits a real Ollama via /translate and /validate, Hungarian→English)
+  - Warms the model with one untimed call per endpoint, then records inputs, outputs, and per-call
+    Ollama timings to tests/integration/results/ (JSON + Markdown) for both passing and failing runs
+  - Report filenames embed the model and a UTC timestamp (results_<model>_<UTC>.json/.md) so runs
+    never overwrite each other
+- Run the integration suite across several models: make test-integration-models MODELS="translategemma:12b qwen3.6:35b-a3b"
+  - Defaults to all three supported models when MODELS is omitted (scripts/run_integration.sh)
+- Compare 2-3 result files: make compare FILES="results/a.json results/b.json" (scripts/compare_runs.py)
+  - Diffs pass/fail and per-case Ollama timings; use it for before/after a code change or model-vs-model
 - View logs: make logs
 - Never run pytest directly on the host; always use make test or docker compose run
 - Lint (host): make lint — uses ruff (config in pyproject.toml)
