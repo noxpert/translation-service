@@ -33,7 +33,7 @@ async def translate_text(
         raise HTTPException(status_code=400, detail=f"Unknown target language: {target_lang}")
 
     # Call 1+2: Translate
-    result, translate_timings = await llm.translate(text, source.name, target.name)  # type: ignore[arg-type]
+    result, translate_timings = await llm.translate(text, source.name, target.name)
     ollama_calls_ms: dict[str, float] = {"translate": translate_timings[0]}
 
     # Normalize part_of_speech against the lookup table
@@ -52,7 +52,7 @@ async def translate_text(
         source_text = result.get("root_source", text)
         target_text = result.get("root_target", "")
         synonyms, syn_timings = await llm.get_synonyms(
-            source_text, target_text, pos_value, source.name, target.name  # type: ignore[arg-type]
+            source_text, target_text, pos_value, source.name, target.name
         )
         ollama_calls_ms["synonyms"] = syn_timings[0]
 
@@ -64,7 +64,7 @@ async def translate_text(
         target_text=result.get("target_text", ""),
         source_lang=source_lang,
         target_lang=target_lang,
-        part_of_speech=pos_value,  # type: ignore[arg-type]
+        part_of_speech=pos_value,
         root_source=result.get("root_source"),
         root_target=result.get("root_target"),
         synonyms=synonyms,

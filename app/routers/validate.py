@@ -18,7 +18,7 @@ async def validate_text(
     if lang is None:
         raise HTTPException(status_code=400, detail=f"Unknown language: {body.lang}")
 
-    result, ollama_calls_ms = await llm.validate(body.text, lang.name)  # type: ignore[arg-type]
+    result, ollama_calls_ms = await llm.validate(body.text, lang.name)
 
     return ValidateResponse(
         is_valid=result.get("is_valid", False),
