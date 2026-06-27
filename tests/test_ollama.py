@@ -286,3 +286,37 @@ async def test_validate_sends_text_and_lang_in_prompt():
     assert "alma" in payload["prompt"]
     assert "Hungarian" in payload["prompt"]
     assert payload["stream"] is False
+
+
+@pytest.mark.asyncio
+async def test_validate_degenerate_correction_flips_to_valid():
+    """Model returns is_valid=false with corrections identical to input -> reconcile to valid."""
+    raw = {"is_valid": False, "corrections": ["alma"]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(raw)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alma", "Hungarian")
+    assert result["is_valid"] is True
+    assert result["corrections"] is None
+
+
+@pytest.mark.asyncio
+async def test_validate_degenerate_correction_case_insensitive():
+    """Degenerate-correction guard uses casefold comparison."""
+    raw = {"is_valid": False, "corrections": ["Alma"]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(raw)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alma", "Hungarian")
+    assert result["is_valid"] is True
+    assert result["corrections"] is None
+
+
+@pytest.mark.asyncio
+async def test_validate_degenerate_correction_keeps_genuinely_different_ones():
+    """Only corrections equal to the input are dropped; others are kept."""
+    raw = {"is_valid": False, "corrections": ["alma", "almák"]}
+    mock_cls, _, _ = _make_mock_client({"response": json.dumps(raw)})
+    with patch("app.services.ollama.httpx.AsyncClient", mock_cls):
+        result, _ = await validate("alma", "Hungarian")
+    # "almák" is different from "alma", so the result stays invalid
+    assert result["is_valid"] is False
+    assert result["corrections"] == ["almák"]

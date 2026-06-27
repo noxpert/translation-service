@@ -25,9 +25,9 @@ Intended to serve multiple small language-learning apps.
 
 ## Ollama Integration (Critical)
 - TranslateGemma requires a SINGLE USER MESSAGE — no system role in the request
-- POST to {OLLAMA_BASE_URL}/api/generate with stream: false
-- The model returns a 'response' field containing the JSON string
-- Always strip markdown code fences before JSON parsing
+- POST to {OLLAMA_BASE_URL}/api/generate with stream: false, format: "json", and options: DECODE_OPTIONS (temperature 0, top_p 1, repeat_penalty 1.0) for deterministic structured output
+- All three calls (translate, get_synonyms, validate) share the module-level DECODE_OPTIONS constant defined in app/services/ollama.py
+- The model returns a 'response' field containing the JSON string; strip markdown code fences before JSON parsing (kept as defensive fallback even though format=json returns clean JSON)
 - Supported local models: `translategemma:12b`, `translategemma:27b`, `qwen3.6:35b-a3b`
 - Model is configured via `OLLAMA_MODEL` in `.env` (single source of truth); docker-compose fallback is `translategemma:27b`
 - Timeout: 60 seconds
@@ -51,11 +51,19 @@ The `/translate` endpoint makes one or two Ollama calls:
 - Builds the Docker image (with layer caching) then runs the full test suite
 - Branch protection on main requires CI to pass before merge
 
+## LLM Backend Selection
+- Default backend is Ollama, selected by `LLM_BACKEND=ollama` (or omitting the var)
+- Set `LLM_BACKEND=claude` to use Claude Sonnet via the Anthropic API; also requires `ANTHROPIC_API_KEY`
+- Optional `ANTHROPIC_MODEL` overrides the model (default: `claude-sonnet-4-6`)
+- The dispatcher is `app/services/llm.py`; routers import from `llm`, not `ollama` directly
+- Mocked unit tests patch `app.services.ollama.*` — this works because `llm.py` calls through the module object at runtime, so patches are picked up correctly
+
 ## Running and Testing
 - Start: make up
 - Run tests: make test
 - Run tests with coverage: make coverage
 - Run live-Ollama integration/performance tests: make test-integration
+- Run integration tests against Claude Sonnet: make test-integration-claude (needs ANTHROPIC_API_KEY exported)
   - Opt-in (gated by RUN_OLLAMA_INTEGRATION); the normal suite stays fully mocked and skips these
   - Lives in tests/integration/ (hits a real Ollama via /translate and /validate, Hungarian→English)
   - Warms the model with one untimed call per endpoint, then records inputs, outputs, and per-call

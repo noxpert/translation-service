@@ -5,6 +5,7 @@ httpx
 httpx2
 pydantic
 pydantic-settings
+anthropic
 pytest
 pytest-asyncio
 pytest-cov

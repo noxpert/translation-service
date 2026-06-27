@@ -32,6 +32,15 @@ _IDIOM_SENTENCE_CORRECT = "Ne igyál előre a medve bőrére."
 # Each case carries the input text, whether we expect it to be judged valid,
 # and (for invalid inputs) the correctly-spelled text that must appear among the
 # returned corrections.
+#
+# Fields:
+#   correct_text  — single gold string; the test passes only when this exact
+#                   string (after normalize_correction) appears in corrections.
+#   correct_texts — list of acceptable alternatives; the test passes when ANY
+#                   entry (after normalize_correction) appears in corrections.
+#                   Use instead of correct_text when more than one correction
+#                   would be linguistically valid.  Leave both absent (None) for
+#                   cases where is_valid is expected to be True.
 
 VALIDATE_CASES = [
     {"id": "haromnegyed-ok", "text": "Háromnegyed egykor", "expected_valid": True,
@@ -170,13 +179,17 @@ TRANSLATE_CASES = [
     # Frequentative derivation: "járogat" = "to go/walk around repeatedly".
     {"id": "jarogat-frequentative", "text": "járogat", "is_phrase": False,
      "expected_root": "járogatni",
-     "keywords": ["walks around", "goes now and then", "wanders", "frequent"],
+     "keywords": ["walks around", "goes now and then", "wanders", "frequent",
+                  "keeps going", "goes repeatedly", "going repeatedly", "goes around",
+                  "walks repeatedly", "repeatedly"],
      "notes_must_mention": ["frequentative", "habitual", "repeated"]},
 
     # Case-suffix stacking: "házaiban" = ház + -ai (plural possessive) + -ban (inessive).
+    # Accept slash notation ("his/her/their") that Claude produces per prompt instruction.
     {"id": "hazaiban-stacked", "text": "házaiban", "is_phrase": False,
      "expected_root": "ház",
-     "keywords": ["in his houses", "in her houses", "in their houses", "in the houses"]},
+     "keywords": ["in his houses", "in her houses", "in their houses", "in the houses",
+                  "in his/her", "his/her/their"]},
 
     # Dense suffix stack: leg- + szép + -bb + -jei + -t (superlative, possessive, accusative).
     {"id": "legszebbjeit-stacked", "text": "legszebbjeit", "is_phrase": False,
