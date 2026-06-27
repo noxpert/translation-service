@@ -179,13 +179,17 @@ TRANSLATE_CASES = [
     # Frequentative derivation: "járogat" = "to go/walk around repeatedly".
     {"id": "jarogat-frequentative", "text": "járogat", "is_phrase": False,
      "expected_root": "járogatni",
-     "keywords": ["walks around", "goes now and then", "wanders", "frequent"],
+     "keywords": ["walks around", "goes now and then", "wanders", "frequent",
+                  "keeps going", "goes repeatedly", "going repeatedly", "goes around",
+                  "walks repeatedly", "repeatedly"],
      "notes_must_mention": ["frequentative", "habitual", "repeated"]},
 
     # Case-suffix stacking: "házaiban" = ház + -ai (plural possessive) + -ban (inessive).
+    # Accept slash notation ("his/her/their") that Claude produces per prompt instruction.
     {"id": "hazaiban-stacked", "text": "házaiban", "is_phrase": False,
      "expected_root": "ház",
-     "keywords": ["in his houses", "in her houses", "in their houses", "in the houses"]},
+     "keywords": ["in his houses", "in her houses", "in their houses", "in the houses",
+                  "in his/her", "his/her/their"]},
 
     # Dense suffix stack: leg- + szép + -bb + -jei + -t (superlative, possessive, accusative).
     {"id": "legszebbjeit-stacked", "text": "legszebbjeit", "is_phrase": False,
