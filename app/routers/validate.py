@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.language import Language
 from app.schemas.validate import ValidateRequest, ValidateResponse
-from app.services import ollama
+from app.services import llm
 
 router = APIRouter(tags=["Translation"])
 
@@ -18,7 +18,7 @@ async def validate_text(
     if lang is None:
         raise HTTPException(status_code=400, detail=f"Unknown language: {body.lang}")
 
-    result, ollama_calls_ms = await ollama.validate(body.text, lang.name)  # type: ignore[arg-type]
+    result, ollama_calls_ms = await llm.validate(body.text, lang.name)  # type: ignore[arg-type]
 
     return ValidateResponse(
         is_valid=result.get("is_valid", False),

@@ -20,7 +20,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from app.services import ollama
+from app.services import llm
 
 OPT_IN_ENV = "RUN_OLLAMA_INTEGRATION"
 # Overridable so the report can be written to a mounted volume when the suite
@@ -33,32 +33,41 @@ def pytest_configure(config):
     # does not copy pyproject.toml, so the marker would otherwise be unknown.
     config.addinivalue_line(
         "markers",
-        "integration: live-Ollama integration/performance tests "
+        "integration: live-LLM integration/performance tests "
         "(opt-in via RUN_OLLAMA_INTEGRATION)",
     )
 
 
-def _ollama_reachable() -> bool:
+def _backend_reachable() -> bool:
+    if llm.LLM_BACKEND == "claude":
+        return bool(os.getenv("ANTHROPIC_API_KEY"))
     try:
-        resp = httpx.get(f"{ollama.OLLAMA_BASE_URL}/api/tags", timeout=5.0)
+        resp = httpx.get(f"{llm.BASE_URL}/api/tags", timeout=5.0)
         return resp.status_code == 200
     except httpx.HTTPError:
         return False
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _require_ollama():
-    """Skip the whole suite unless explicitly opted in and Ollama is up."""
+def _require_integration_backend():
+    """Skip the whole suite unless explicitly opted in and the LLM backend is reachable."""
     if not os.getenv(OPT_IN_ENV):
         pytest.skip(
-            f"set {OPT_IN_ENV}=1 (and run with a live Ollama) to run integration tests",
+            f"set {OPT_IN_ENV}=1 to run integration tests "
+            f"(LLM_BACKEND={llm.LLM_BACKEND})",
             allow_module_level=True,
         )
-    if not _ollama_reachable():
-        pytest.skip(
-            f"Ollama not reachable at {ollama.OLLAMA_BASE_URL}",
-            allow_module_level=True,
-        )
+    if not _backend_reachable():
+        if llm.LLM_BACKEND == "claude":
+            pytest.skip(
+                "ANTHROPIC_API_KEY is not set — required for LLM_BACKEND=claude",
+                allow_module_level=True,
+            )
+        else:
+            pytest.skip(
+                f"Ollama not reachable at {llm.BASE_URL}",
+                allow_module_level=True,
+            )
 
 
 def normalize(text: str | None) -> str:
@@ -108,7 +117,7 @@ def _ollama_total_ms(calls) -> float:
 def _render_markdown(records: list[dict]) -> str:
     lines = ["# Translation Service — Integration & Performance Results", ""]
     lines.append(f"Generated: {datetime.now(timezone.utc).isoformat()}")
-    lines.append(f"Model: `{ollama.OLLAMA_MODEL}`  ·  Endpoint: `{ollama.OLLAMA_BASE_URL}`")
+    lines.append(f"Model: `{llm.MODEL_NAME}`  ·  Endpoint: `{llm.BASE_URL}`")
     lines.append("")
 
     for endpoint in sorted({r["endpoint"] for r in records}):
@@ -169,7 +178,7 @@ def recorder():
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    safe_model = re.sub(r"[^A-Za-z0-9._-]", "-", ollama.OLLAMA_MODEL)
+    safe_model = re.sub(r"[^A-Za-z0-9._-]", "-", llm.MODEL_NAME)
     stem = f"results_{safe_model}_{ts}"
     json_path = RESULTS_DIR / f"{stem}.json"
     md_path = RESULTS_DIR / f"{stem}.md"
@@ -178,8 +187,8 @@ def recorder():
         json.dumps(
             {
                 "generated": datetime.now(timezone.utc).isoformat(),
-                "model": ollama.OLLAMA_MODEL,
-                "ollama_base_url": ollama.OLLAMA_BASE_URL,
+                "model": llm.MODEL_NAME,
+                "ollama_base_url": llm.BASE_URL,
                 "records": rec.records,
             },
             indent=2,

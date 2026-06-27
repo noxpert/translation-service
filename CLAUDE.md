@@ -51,11 +51,19 @@ The `/translate` endpoint makes one or two Ollama calls:
 - Builds the Docker image (with layer caching) then runs the full test suite
 - Branch protection on main requires CI to pass before merge
 
+## LLM Backend Selection
+- Default backend is Ollama, selected by `LLM_BACKEND=ollama` (or omitting the var)
+- Set `LLM_BACKEND=claude` to use Claude Sonnet via the Anthropic API; also requires `ANTHROPIC_API_KEY`
+- Optional `ANTHROPIC_MODEL` overrides the model (default: `claude-sonnet-4-6`)
+- The dispatcher is `app/services/llm.py`; routers import from `llm`, not `ollama` directly
+- Mocked unit tests patch `app.services.ollama.*` — this works because `llm.py` calls through the module object at runtime, so patches are picked up correctly
+
 ## Running and Testing
 - Start: make up
 - Run tests: make test
 - Run tests with coverage: make coverage
 - Run live-Ollama integration/performance tests: make test-integration
+- Run integration tests against Claude Sonnet: make test-integration-claude (needs ANTHROPIC_API_KEY exported)
   - Opt-in (gated by RUN_OLLAMA_INTEGRATION); the normal suite stays fully mocked and skips these
   - Lives in tests/integration/ (hits a real Ollama via /translate and /validate, Hungarian→English)
   - Warms the model with one untimed call per endpoint, then records inputs, outputs, and per-call

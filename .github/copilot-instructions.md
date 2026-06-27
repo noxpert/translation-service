@@ -30,6 +30,12 @@ and stores words and phrases in SQLite for language study. Containerized with Do
 - On write: validate against parts_of_speech table; fall back to 'other' if unknown
 - On translate response: same normalization, but nothing is written to DB
 
+## LLM Backend Selection
+- Default backend is Ollama (`LLM_BACKEND=ollama`); set `LLM_BACKEND=claude` to use Claude Sonnet via the Anthropic API
+- The dispatcher `app/services/llm.py` re-exports `translate`, `get_synonyms`, `validate` from the selected backend
+- Routers import from `app.services.llm`, not directly from `app.services.ollama`
+- Mocked unit tests still patch `app.services.ollama.*` — works because `llm.py` calls through the module object at runtime
+
 ## Ollama Integration
 - CRITICAL: TranslateGemma uses a single user message — never add a system role
 - POST /api/generate with stream: false, format: "json", and options: DECODE_OPTIONS (temperature 0, top_p 1, repeat_penalty 1.0) for deterministic structured output

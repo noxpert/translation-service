@@ -49,6 +49,21 @@ test-integration:
 		translation-service \
 		pytest tests/integration -v -s
 
+## Run integration tests against Claude Sonnet (needs ANTHROPIC_API_KEY exported in the shell)
+test-integration-claude:
+	mkdir -p tests/integration/results
+	docker compose run --rm \
+		-e DATABASE_URL=sqlite:// \
+		-e PYTHONPATH=/app \
+		-e RUN_OLLAMA_INTEGRATION=1 \
+		-e LLM_BACKEND=claude \
+		-e ANTHROPIC_API_KEY \
+		-e ANTHROPIC_MODEL \
+		-e INTEGRATION_RESULTS_DIR=/results \
+		-v "$(CURDIR)/tests/integration/results:/results" \
+		translation-service \
+		pytest tests/integration -v -s
+
 ## Run the integration suite for several models (usage: make test-integration-models MODELS="translategemma:12b qwen3.6:35b-a3b"; defaults to all three)
 test-integration-models:
 	scripts/run_integration.sh $(MODELS)
